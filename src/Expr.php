@@ -4,7 +4,7 @@ namespace Haoa\MixDatabase;
 
 /**
  * Class Expr
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 class Expr
 {

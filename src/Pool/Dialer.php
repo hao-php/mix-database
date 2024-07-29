@@ -2,12 +2,12 @@
 
 namespace Haoa\MixDatabase\Pool;
 
-use Mix\Database\Driver;
+use Haoa\MixDatabase\Driver;
 use Mix\ObjectPool\DialerInterface;
 
 /**
  * Class Dialer
- * @package Mix\Database\Pool
+ * @package Haoa\MixDatabase\Pool
  */
 class Dialer implements DialerInterface
 {

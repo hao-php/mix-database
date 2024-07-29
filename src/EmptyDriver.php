@@ -4,7 +4,7 @@ namespace Haoa\MixDatabase;
 
 /**
  * Class EmptyDriver
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 class EmptyDriver
 {

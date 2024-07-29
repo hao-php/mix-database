@@ -4,7 +4,7 @@ namespace Haoa\MixDatabase;
 
 /**
  * Interface ConnectionInterface
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 interface ConnectionInterface
 {

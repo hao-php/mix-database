@@ -4,7 +4,7 @@ namespace Haoa\MixDatabase;
 
 /**
  * Class Connection
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 class Connection extends AbstractConnection
 {

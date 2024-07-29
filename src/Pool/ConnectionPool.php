@@ -2,12 +2,12 @@
 
 namespace Haoa\MixDatabase\Pool;
 
-use Mix\Database\Driver;
+use Haoa\MixDatabase\Driver;
 use Mix\ObjectPool\AbstractObjectPool;
 
 /**
  * Class ConnectionPool
- * @package Mix\Database\Pool
+ * @package Haoa\MixDatabase\Pool
  * @author liu,jian <coder.keda@gmail.com>
  */
 class ConnectionPool extends AbstractObjectPool

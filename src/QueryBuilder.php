@@ -4,7 +4,7 @@ namespace Haoa\MixDatabase;
 
 /**
  * Trait QueryBuilder
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 trait QueryBuilder
 {

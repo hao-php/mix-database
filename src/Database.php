@@ -2,13 +2,13 @@
 
 namespace Haoa\MixDatabase;
 
-use Mix\Database\Pool\ConnectionPool;
-use Mix\Database\Pool\Dialer;
+use Haoa\MixDatabase\Pool\ConnectionPool;
+use Haoa\MixDatabase\Pool\Dialer;
 use Mix\ObjectPool\Exception\WaitTimeoutException;
 
 /**
  * Class Database
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 class Database
 {

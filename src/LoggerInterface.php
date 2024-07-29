@@ -4,7 +4,7 @@ namespace Haoa\MixDatabase;
 
 /**
  * Interface LoggerInterface
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 interface LoggerInterface
 {

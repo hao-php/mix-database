@@ -6,7 +6,7 @@ use Mix\ObjectPool\ObjectTrait;
 
 /**
  * Class Driver
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 class Driver
 {

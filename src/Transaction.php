@@ -4,7 +4,7 @@ namespace Haoa\MixDatabase;
 
 /**
  * Class Transaction
- * @package Mix\Database
+ * @package Haoa\MixDatabase
  */
 class Transaction extends Connection
 {
