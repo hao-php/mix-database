@@ -237,7 +237,7 @@ abstract class AbstractConnection implements ConnectionInterface
                 $log = $this->queryLog();
                 $this->logger->trace(
                     $log['time'],
-                    $log['sql'],
+                    $this->queryLogSql(),
                     $log['bindings'],
                     $this->rowCount(),
                     $ex ?? null
@@ -532,6 +532,36 @@ abstract class AbstractConnection implements ConnectionInterface
             'sql' => $sql,
             'bindings' => $values ?: $params,
         ];
+    }
+
+    public function queryLogSql()
+    {
+        $log = $this->queryLog();
+        $sql = $log['sql'];
+        if (!empty($log['bindings'])) {
+            reset($log['bindings']);
+            $firstKey = key($log['bindings']);
+            if (is_string($firstKey)) {
+                foreach ($log['bindings'] as $key => $v) {
+                    $sql = str_replace(':' . $key, '"' . $v . '"', $sql);
+                }
+            } else {
+                foreach ($log['bindings'] as $key => $v) {
+                    if (is_array($v)) {
+                        foreach ($v as &$vv) {
+                            $vv = addslashes($vv);
+                        }
+                        $v = implode('","', $v);
+                    } else {
+                        $v = addslashes($v);
+                    }
+                    $log['bindings'][$key] = '"' . $v . '"';
+                }
+                $sql = str_replace('?', '%s', $sql);
+                $sql = sprintf($sql, ...$log['bindings']);
+            }
+        }
+        return $sql;
     }
 
     /**
