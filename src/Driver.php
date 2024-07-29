@@ -1,6 +1,6 @@
 <?php
 
-namespace Mix\Database;
+namespace Haoa\MixDatabase;
 
 use Mix\ObjectPool\ObjectTrait;
 

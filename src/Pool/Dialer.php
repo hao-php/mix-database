@@ -1,6 +1,6 @@
 <?php
 
-namespace Mix\Database\Pool;
+namespace Haoa\MixDatabase\Pool;
 
 use Mix\Database\Driver;
 use Mix\ObjectPool\DialerInterface;
