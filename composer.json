@@ -1,22 +1,7 @@
 {
-  "name": "mix/database",
+  "name": "haoa/mix-database",
   "description": "Simple database for use in multiple execution environments, with support for FPM, Swoole, Workerman, and optional pools",
   "type": "library",
-  "keywords": [
-    "mix",
-    "database",
-    "mysql",
-    "swoole",
-    "workerman"
-  ],
-  "homepage": "https://openmix.org/mix-php",
-  "license": "Apache-2.0",
-  "authors": [
-    {
-      "name": "liu,jian",
-      "email": "coder.keda@gmail.com"
-    }
-  ],
   "require": {
     "php": ">=7.2.0",
     "ext-pdo": "*",
