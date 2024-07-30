@@ -534,7 +534,7 @@ abstract class AbstractConnection implements ConnectionInterface
         ];
     }
 
-    public function queryLogSql()
+    public function queryLogSql(): string
     {
         $log = $this->queryLog();
         $sql = $log['sql'];

@@ -88,4 +88,6 @@ interface ConnectionInterface
 
     public function queryLog(): array;
 
+    public function queryLogSql(): string;
+
 }
