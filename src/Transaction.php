@@ -28,6 +28,9 @@ class Transaction extends Connection
      */
     public function commit()
     {
+        if ($this->driver instanceof EmptyDriver) {
+            return; // 已经提交或回滚过了
+        }
         if (!$this->driver->instance()->commit()) {
             throw new \PDOException('Commit transaction failed');
         }
@@ -40,6 +43,9 @@ class Transaction extends Connection
      */
     public function rollback()
     {
+        if ($this->driver instanceof EmptyDriver) {
+            return; // 已经提交或回滚过了
+        }
         if (!$this->driver->instance()->rollBack()) {
             throw new \PDOException('Rollback transaction failed');
         }
