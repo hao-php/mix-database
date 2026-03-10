@@ -4,7 +4,7 @@ namespace Haoa\MixDatabase;
 
 use Haoa\MixDatabase\Pool\ConnectionPool;
 use Haoa\MixDatabase\Pool\Dialer;
-use Mix\ObjectPool\Exception\WaitTimeoutException;
+use Haoa\ObjectPool\Exception\WaitTimeoutException;
 
 /**
  * Class Database

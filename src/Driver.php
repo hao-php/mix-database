@@ -2,7 +2,7 @@
 
 namespace Haoa\MixDatabase;
 
-use Mix\ObjectPool\ObjectTrait;
+use Haoa\ObjectPool\ObjectTrait;
 
 /**
  * Class Driver

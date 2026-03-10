@@ -3,7 +3,7 @@
 namespace Haoa\MixDatabase\Pool;
 
 use Haoa\MixDatabase\Driver;
-use Mix\ObjectPool\DialerInterface;
+use Haoa\ObjectPool\DialerInterface;
 
 /**
  * Class Dialer

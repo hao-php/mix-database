@@ -3,7 +3,7 @@
 namespace Haoa\MixDatabase\Pool;
 
 use Haoa\MixDatabase\Driver;
-use Mix\ObjectPool\AbstractObjectPool;
+use Haoa\ObjectPool\AbstractObjectPool;
 
 /**
  * Class ConnectionPool
