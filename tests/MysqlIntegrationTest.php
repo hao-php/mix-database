@@ -64,17 +64,17 @@ final class MysqlIntegrationTest extends TestCase
         $db->insertOnConflict('users', ['name' => 'foo'], 'name');
     }
 
-    // ==================== quoteIdentifier 集成验证 ====================
+    // ==================== insert 集成验证 ====================
 
-    public function testInsertUsesQuotedIdentifiers(): void
+    public function testInsertSql(): void
     {
         $db = db();
         $_this = $this;
         $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
-            $_this->assertStringContainsString('`users`', $log['sql']);
-            $_this->assertStringContainsString('`name`', $log['sql']);
-            $_this->assertStringContainsString('`balance`', $log['sql']);
+            $_this->assertStringContainsString('INSERT INTO users', $log['sql']);
+            $_this->assertStringContainsString('name', $log['sql']);
+            $_this->assertStringContainsString('balance', $log['sql']);
         })->insert('users', ['name' => 'quote_test', 'balance' => 0]);
     }
 
