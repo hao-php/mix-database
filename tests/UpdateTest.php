@@ -19,17 +19,17 @@ final class UpdateTest extends TestCase
         $db->table('users')->where('id = ?', 1)->updates($data);
 
         $data = [
-            'balance' => new Mix\Database\Expr('balance + ?', 1),
+            'balance' => new Haoa\MixDatabase\Expr('balance + ?', 1),
         ];
         $db->table('users')->where('id = ?', 1)->updates($data);
 
-        $db->table('users')->where('id = ?', 1)->update('balance', new Mix\Database\Expr('balance + ?', 1));
+        $db->table('users')->where('id = ?', 1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1));
 
-        $rowsAffected = $db->table('users')->where('id = ?', 1)->update('add_time', new Mix\Database\Expr('CURRENT_TIMESTAMP()'))->rowCount();
+        $rowsAffected = $db->table('users')->where('id = ?', 1)->update('add_time', new Haoa\MixDatabase\Expr('CURRENT_TIMESTAMP()'))->rowCount();
         $this->assertEquals(1, $rowsAffected);
 
         $data = [
-            'add_time' => new Mix\Database\Expr('CURRENT_TIMESTAMP()'),
+            'add_time' => new Haoa\MixDatabase\Expr('CURRENT_TIMESTAMP()'),
         ];
         $rowsAffected = $db->table('users')->where('id = ?', 1)->updates($data)->rowCount();
         $this->assertEquals(0, $rowsAffected);

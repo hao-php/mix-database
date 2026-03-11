@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
-use Mix\Database\ConnectionInterface;
+use Haoa\MixDatabase\ConnectionInterface;
 
 final class WhereTest extends TestCase
 {

@@ -14,7 +14,7 @@ final class PoolTest extends TestCase
             $db->startPool(1, 1);
             for ($i = 0; $i < 100; $i++) {
                 go(function () use ($db, $i) {
-                    $db->debug(function (\Mix\Database\ConnectionInterface $conn) {
+                    $db->debug(function (\Haoa\MixDatabase\ConnectionInterface $conn) {
                         $stat = $conn->statement();
                         while ($row = $stat->fetch()) {
                             usleep(100000);

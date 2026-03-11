@@ -20,8 +20,8 @@ final class TransTest extends TestCase
         $id2 = $db->insert('users', $data)->lastInsertId();
         $this->assertNotEquals($id1, $id2);
 
-        $count1 = $db->table('users')->where('id = ?', $id1)->update('balance', new Mix\Database\Expr('balance + ?', 1))->rowCount();
-        $count2 = $db->table('users')->update('balance', new Mix\Database\Expr('balance + ?', 1))->rowCount();
+        $count1 = $db->table('users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+        $count2 = $db->table('users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
         $this->assertNotEquals($count1, $count2);
 
         // 没有pool + 事务
@@ -34,8 +34,8 @@ final class TransTest extends TestCase
         $id2 = $tx->insert('users', $data)->lastInsertId();
         $this->assertNotEquals($id1, $id2);
 
-        $count1 = $tx->table('users')->where('id = ?', $id1)->update('balance', new Mix\Database\Expr('balance + ?', 1))->rowCount();
-        $count2 = $tx->table('users')->update('balance', new Mix\Database\Expr('balance + ?', 1))->rowCount();
+        $count1 = $tx->table('users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+        $count2 = $tx->table('users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
         $this->assertNotEquals($count1, $count2);
     }
 
@@ -54,8 +54,8 @@ final class TransTest extends TestCase
             $id2 = $pool->insert('users', $data)->lastInsertId();
             $this->assertNotEquals($id1, $id2);
 
-            $count1 = $pool->table('users')->where('id = ?', $id1)->update('balance', new Mix\Database\Expr('balance + ?', 1))->rowCount();
-            $count2 = $pool->table('users')->update('balance', new Mix\Database\Expr('balance + ?', 1))->rowCount();
+            $count1 = $pool->table('users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+            $count2 = $pool->table('users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
             $this->assertNotEquals($count1, $count2);
         });
 
@@ -72,8 +72,8 @@ final class TransTest extends TestCase
             $id2 = $tx->insert('users', $data)->lastInsertId();
             $this->assertNotEquals($id1, $id2);
 
-            $count1 = $tx->table('users')->where('id = ?', $id1)->update('balance', new Mix\Database\Expr('balance + ?', 1))->rowCount();
-            $count2 = $tx->table('users')->update('balance', new Mix\Database\Expr('balance + ?', 1))->rowCount();
+            $count1 = $tx->table('users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+            $count2 = $tx->table('users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
             $this->assertNotEquals($count1, $count2);
         });
     }
@@ -130,7 +130,7 @@ final class TransTest extends TestCase
         $_this = $this;
         $db = db();
 
-        $db->transaction(function (Mix\Database\Transaction $tx) use ($_this) {
+        $db->transaction(function (Haoa\MixDatabase\Transaction $tx) use ($_this) {
             $data = [
                 'name' => 'foo9',
                 'balance' => 9,

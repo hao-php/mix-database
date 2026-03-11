@@ -41,7 +41,7 @@ final class InsertTest extends TestCase
         $data = [
             'name' => 'foo4',
             'balance' => 4,
-            'add_time' => new Mix\Database\Expr('CURRENT_TIMESTAMP()'),
+            'add_time' => new Haoa\MixDatabase\Expr('CURRENT_TIMESTAMP()'),
         ];
         $db->insert('users', $data);
     }

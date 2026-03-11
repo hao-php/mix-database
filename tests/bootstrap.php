@@ -1,24 +1,26 @@
 <?php
 
-const DATABASE_DSN = 'mysql:host=127.0.0.1;port=3306;charset=utf8;dbname=test';
-const DATABASE_USERNAME = 'root';
-const DATABASE_PASSWORD = '123456';
+require __DIR__ . '/../vendor/autoload.php';
+
+const MYSQL_DSN = 'mysql:host=qh-mysql57;port=3306;charset=utf8;dbname=test';
+const MYSQL_USERNAME = 'root';
+const MYSQL_PASSWORD = 'dcqhmsql';
 
 /**
- * @return \Mix\Database\Database
+ * @return \Haoa\MixDatabase\Database
  */
 function db()
 {
-    return new \Mix\Database\Database(DATABASE_DSN, DATABASE_USERNAME, DATABASE_PASSWORD);
+    return new \Haoa\MixDatabase\Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD);
 }
 
 /**
- * @return \Mix\Database\Database
+ * @return \Haoa\MixDatabase\Database
  */
 function pool()
 {
-    $db = new \Mix\Database\Database(DATABASE_DSN, DATABASE_USERNAME, DATABASE_PASSWORD);
-    $db->startPool(10,10);
+    $db = new \Haoa\MixDatabase\Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD);
+    $db->startPool(10, 10);
     return $db;
 }
 

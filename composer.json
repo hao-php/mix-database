@@ -11,5 +11,8 @@
     "psr-4": {
       "Haoa\\MixDatabase\\": "src/"
     }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "*"
   }
 }

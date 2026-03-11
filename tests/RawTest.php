@@ -14,7 +14,7 @@ final class RawTest extends TestCase
         $rowsAffected = $db->exec('DELETE FROM users WHERE id = ?', 100000)->rowCount();
         $this->assertEquals(0, $rowsAffected);
 
-        $res = $db->debug(function (\Mix\Database\ConnectionInterface $conn) use ($_this) {
+        $res = $db->debug(function (\Haoa\MixDatabase\ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
             $sql = "SELECT * FROM users WHERE id = ?";
             $_this->assertEquals($log['sql'], $sql);
@@ -27,7 +27,7 @@ final class RawTest extends TestCase
         $this->assertObjectHasAttribute('balance', $obj);
         $this->assertObjectHasAttribute('add_time', $obj);
 
-        $obj = $db->debug(function (\Mix\Database\ConnectionInterface $conn) use ($_this) {
+        $obj = $db->debug(function (\Haoa\MixDatabase\ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
             $sql = "SELECT * FROM users WHERE id = ?";
             $_this->assertEquals($log['sql'], $sql);
