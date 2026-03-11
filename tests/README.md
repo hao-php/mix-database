@@ -33,6 +33,7 @@ vendor/bin/phpunit -c tests/phpunit.xml.dist <你传入的目标>
 
 - `PoolTest.php` 依赖 Swoole 协程环境。
 - 在 `tests/phpunit.xml.dist` 中，如果需要跳过 Pool 相关测试，可以取消注释：
+- `tests/phpunit.sh tests/PoolTest.php` 会优先使用命令行显式指定的测试文件
 
 ```xml
 <!-- <exclude>tests/PoolTest.php</exclude> -->
