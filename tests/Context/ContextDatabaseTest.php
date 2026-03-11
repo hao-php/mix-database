@@ -40,6 +40,40 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** 嵌套事务：只有最外层 commit 才会真正提交 */
+    public function testNestedTransactionRealCommitOnOuter(): void
+    {
+        $tx1 = $this->db->beginTransaction();
+
+        try {
+            $tx2 = $this->db->beginTransaction();
+            $this->assertSame($tx1, $tx2);
+
+            $id = $this->db->insert('test_users', [
+                'user_name' => 'nested_commit_test',
+                'email' => 'tx@example.com',
+            ])->lastInsertId();
+            $this->assertNotEmpty($id);
+
+            // 内层 commit：此时只会减少嵌套层级，不会真正提交
+            $tx2->commit();
+
+            // 在同一事务上下文中，应当可以读到刚插入的数据
+            $userInTx = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $this->assertNotFalse($userInTx);
+
+            // 最外层 commit：此时才真正提交到数据库
+            $tx1->commit();
+
+            // 提交后再次查询，应当仍然能读到该数据
+            $userAfterCommit = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $this->assertNotFalse($userAfterCommit);
+        } catch (\Throwable $e) {
+            $tx1->rollback();
+            throw $e;
+        }
+    }
+
     /** 从运行上下文中获取当前事务对象 */
     public function testGetContextTx(): void
     {
@@ -177,6 +211,40 @@ final class ContextDatabaseTest extends ContextTestCase
             $this->assertFalse($user);
         } catch (\Throwable $e) {
             $tx->rollback();
+            throw $e;
+        }
+    }
+
+    /** 嵌套事务：只有最外层 rollback 才会真正回滚 */
+    public function testNestedTransactionRealRollbackOnOuter(): void
+    {
+        $tx1 = $this->db->beginTransaction();
+
+        try {
+            $tx2 = $this->db->beginTransaction();
+            $this->assertSame($tx1, $tx2);
+
+            $id = $this->db->insert('test_users', [
+                'user_name' => 'nested_rollback_test',
+                'email' => 'tx@example.com',
+            ])->lastInsertId();
+            $this->assertNotEmpty($id);
+
+            // 内层 rollback：此时只会减少嵌套层级，不会真正回滚
+            $tx2->rollback();
+
+            // 在同一事务上下文中，应当仍然可以读到刚插入的数据
+            $userInTx = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $this->assertNotFalse($userInTx);
+
+            // 最外层 rollback：此时才真正回滚
+            $tx1->rollback();
+
+            // 回滚后再次查询，应当读不到该数据
+            $userAfterRollback = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $this->assertFalse($userAfterRollback);
+        } catch (\Throwable $e) {
+            $tx1->rollback();
             throw $e;
         }
     }
