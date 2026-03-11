@@ -22,7 +22,7 @@ final class InsertTest extends TestCase
                 'balance' => 1,
             ])->lastInsertId();
         } catch (\Throwable $ex) {
-            $this->assertContains('Base table or view not found', $ex->getMessage());
+            $this->assertStringContainsString('Base table or view not found', $ex->getMessage());
         }
 
         $data = [

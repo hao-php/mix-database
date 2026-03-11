@@ -100,7 +100,7 @@ final class TransTest extends TestCase
             $this->assertTrue(true);
         } catch (\Throwable $ex) {
             $tx->rollback();
-            $this->assertContains("Field 'balance' doesn't have a default value", $ex->getMessage());
+            $this->assertStringContainsString("Field 'balance' doesn't have a default value", $ex->getMessage());
         }
     }
 

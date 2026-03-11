@@ -22,10 +22,10 @@ final class RawTest extends TestCase
         })->raw('SELECT * FROM users WHERE id = ?', 1)->get();
         $obj = array_pop($res);
         $this->assertIsObject($obj);
-        $this->assertObjectHasAttribute('id', $obj);
-        $this->assertObjectHasAttribute('name', $obj);
-        $this->assertObjectHasAttribute('balance', $obj);
-        $this->assertObjectHasAttribute('add_time', $obj);
+        $this->assertTrue(isset($obj->id));
+        $this->assertTrue(isset($obj->name));
+        $this->assertTrue(isset($obj->balance));
+        $this->assertTrue(isset($obj->add_time));
 
         $obj = $db->debug(function (\Haoa\MixDatabase\ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
@@ -34,10 +34,10 @@ final class RawTest extends TestCase
             $_this->assertEquals($log['bindings'], [1]);
         })->raw('SELECT * FROM users WHERE id = ?', 1)->first();
         $this->assertIsObject($obj);
-        $this->assertObjectHasAttribute('id', $obj);
-        $this->assertObjectHasAttribute('name', $obj);
-        $this->assertObjectHasAttribute('balance', $obj);
-        $this->assertObjectHasAttribute('add_time', $obj);
+        $this->assertTrue(isset($obj->id));
+        $this->assertTrue(isset($obj->name));
+        $this->assertTrue(isset($obj->balance));
+        $this->assertTrue(isset($obj->add_time));
     }
 
 }
