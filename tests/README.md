@@ -48,6 +48,12 @@ tests/phpunit.sh tests/InsertTest.php
 tests/phpunit.sh "tests/PoolTest.php --filter testQueryTriggersCoroutineSwitch"
 ```
 
+- **只跑 Context（运行上下文封装）相关测试**：
+
+```bash
+tests/phpunit.sh tests/Context
+```
+
 说明：
 - `tests/phpunit.sh` 要求必须传入一个参数（测试目标），可以是：
   - 单个文件：`tests/InsertTest.php`

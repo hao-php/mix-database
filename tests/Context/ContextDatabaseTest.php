@@ -1,13 +1,16 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/ContextTestCase.php';
+
 use Haoa\MixDatabase\ConnectionInterface;
-use Haoa\MixDatabase\Db\Database;
-use Haoa\MixDatabase\Db\TransactionWrapper;
+use Haoa\MixDatabase\Context\Database;
+use Haoa\MixDatabase\Context\TransactionWrapper;
 
 final class ContextDatabaseTest extends ContextTestCase
 {
 
+    /** 构造函数是否能正常创建 Context\Database */
     public function testConstruct(): void
     {
         $this->assertInstanceOf(Database::class, $this->db);
@@ -20,6 +23,7 @@ final class ContextDatabaseTest extends ContextTestCase
         $tx->rollback();
     }
 
+    /** 多次 beginTransaction 应该复用同一个 TransactionWrapper 实例（嵌套事务） */
     public function testNestedTransaction(): void
     {
         $tx1 = $this->db->beginTransaction();
@@ -36,6 +40,7 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** 从运行上下文中获取当前事务对象 */
     public function testGetContextTx(): void
     {
         $tx = $this->db->beginTransaction();
@@ -52,6 +57,7 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** 删除运行上下文中的事务对象 */
     public function testDelContextTx(): void
     {
         $tx = $this->db->beginTransaction();
@@ -68,6 +74,7 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** queryLogToSql：命名绑定参数转换为可直接执行的 SQL */
     public function testQueryLogToSqlWithNamedBindings(): void
     {
         $log = [
@@ -79,6 +86,7 @@ final class ContextDatabaseTest extends ContextTestCase
         $this->assertStringContainsString('"test"', $sql);
     }
 
+    /** queryLogToSql：位置占位符绑定参数转换为可直接执行的 SQL */
     public function testQueryLogToSqlWithPositionalBindings(): void
     {
         $log = [
@@ -91,6 +99,7 @@ final class ContextDatabaseTest extends ContextTestCase
         $this->assertStringContainsString('"test"', $sql);
     }
 
+    /** queryLogToSql：数组绑定（IN (?)）展开为 "1","2","3" 形式 */
     public function testQueryLogToSqlWithArrayBindings(): void
     {
         $log = [
@@ -102,6 +111,7 @@ final class ContextDatabaseTest extends ContextTestCase
         $this->assertStringContainsString('"1","2","3"', $sql);
     }
 
+    /** queryLogToSql：空绑定时保持原 SQL 不变 */
     public function testQueryLogToSqlWithEmptyBindings(): void
     {
         $log = [
@@ -113,6 +123,7 @@ final class ContextDatabaseTest extends ContextTestCase
         $this->assertEquals('SELECT * FROM users', $sql);
     }
 
+    /** queryLogToSql：没有 bindings 字段时保持原 SQL 不变 */
     public function testQueryLogToSqlWithoutBindings(): void
     {
         $log = [
@@ -123,6 +134,7 @@ final class ContextDatabaseTest extends ContextTestCase
         $this->assertEquals('SELECT * FROM users', $sql);
     }
 
+    /** 事务提交后，插入的数据应当可以被查询到 */
     public function testInsertAndCommit(): void
     {
         $tx = $this->db->beginTransaction();
@@ -146,6 +158,7 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** 事务回滚后，插入的数据应当查询不到 */
     public function testInsertAndRollback(): void
     {
         $tx = $this->db->beginTransaction();
@@ -168,6 +181,7 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** 提交事务时，应当依次触发已注册的 commit 回调 */
     public function testTransactionWithCallback(): void
     {
         $callbackCalled = false;
@@ -192,6 +206,7 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** 不同 Database 实例的事务上下文应当相互隔离 */
     public function testTransactionContextIsolation(): void
     {
         $db1 = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD, [
@@ -218,12 +233,14 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** 能够正常获取到运行上下文对象 */
     public function testGetContext(): void
     {
         $context = Database::getContext();
         $this->assertNotNull($context);
     }
 
+    /** 在 TransactionWrapper 中使用 exec/raw 执行 SQL */
     public function testTransactionWrapperExecAndRaw(): void
     {
         $tx = $this->db->beginTransaction();
@@ -242,6 +259,7 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 
+    /** 在 TransactionWrapper 中使用 debug 回调，收集最后一次查询的调试信息 */
     public function testTransactionWrapperDebug(): void
     {
         $tx = $this->db->beginTransaction();

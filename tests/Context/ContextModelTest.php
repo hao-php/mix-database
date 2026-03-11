@@ -1,17 +1,21 @@
 <?php
 declare(strict_types=1);
 
-use Haoa\MixDatabase\Db\Model as BaseModel;
-use Haoa\MixDatabase\Db\Database;
+require_once __DIR__ . '/ContextTestCase.php';
+
+use Haoa\MixDatabase\Context\Model as BaseModel;
+use Haoa\MixDatabase\Context\Database;
 
 final class ContextModelTest extends ContextTestCase
 {
 
+    /** 创建一个绑定了 Context\Database 的测试模型 */
     private function createModel(): ContextTestUserModel
     {
         return ContextTestUserModel::newInstance($this->db);
     }
 
+    /** where 条件与 getLastSql 生成的 SQL 片段校验 */
     public function testWhereAndGetLastSql(): void
     {
         $model = $this->createModel();
@@ -22,6 +26,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertStringContainsString('user_name', $sql);
     }
 
+    /** insert 返回值非空即可（具体插入结果由其他用例覆盖） */
     public function testInsert(): void
     {
         $model = $this->createModel();
@@ -33,6 +38,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertNotNull($result);
     }
 
+    /** insertGetId：返回自增主键，并且不为空 */
     public function testInsertGetId(): void
     {
         $model = $this->createModel();
@@ -45,6 +51,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertNotEmpty($id);
     }
 
+    /** batchInsert：批量插入返回受影响行数 */
     public function testBatchInsert(): void
     {
         $model = $this->createModel();
@@ -57,6 +64,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertEquals(2, $result);
     }
 
+    /** update：更新单个字段，受影响行数为 1 */
     public function testUpdate(): void
     {
         $model = $this->createModel();
@@ -67,6 +75,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertEquals(1, $result);
     }
 
+    /** updates：更新多个字段，受影响行数为 1 */
     public function testUpdateMultiple(): void
     {
         $model = $this->createModel();
@@ -80,6 +89,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertEquals(1, $result);
     }
 
+    /** delete：按主键删除单行 */
     public function testDelete(): void
     {
         $model = $this->createModel();
@@ -90,6 +100,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertEquals(1, $result);
     }
 
+    /** get：获取多行结果，当前只插入一条，数量应为 1 */
     public function testGetAll(): void
     {
         $model = $this->createModel();
@@ -100,6 +111,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertCount(1, $result);
     }
 
+    /** first：获取第一行记录，并检查字段值 */
     public function testGetFirst(): void
     {
         $model = $this->createModel();
@@ -110,6 +122,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertEquals('first_test', $result['user_name']);
     }
 
+    /** count：统计记录数量 */
     public function testCount(): void
     {
         $model = $this->createModel();
@@ -120,6 +133,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertEquals(1, $count);
     }
 
+    /** value：获取单字段的值 */
     public function testGetValue(): void
     {
         $model = $this->createModel();
@@ -129,6 +143,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertEquals('value_test', $value);
     }
 
+    /** column：获取某一列的所有值 */
     public function testGetColumn(): void
     {
         $model = $this->createModel();
@@ -139,6 +154,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertCount(1, $column);
     }
 
+    /** 复杂查询：多条件 + 排序 + limit */
     public function testComplexQuery(): void
     {
         $model = $this->createModel();
@@ -157,6 +173,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertCount(2, $result);
     }
 
+    /** update 自动维护 updated_at 字段（带 sleep，确保时间有变化） */
     public function testUpdateWithAutoTimestamp(): void
     {
         $model = $this->createModel();
@@ -171,6 +188,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertNotNull($user['updated_at']);
     }
 
+    /** insert 自动维护 created_at 与 updated_at 字段 */
     public function testInsertWithAutoTimestamp(): void
     {
         $model = $this->createModel();
@@ -181,6 +199,7 @@ final class ContextModelTest extends ContextTestCase
         $this->assertNotNull($user['updated_at']);
     }
 
+    /** where 传入非法格式时，应抛出 where格式错误 异常 */
     public function testWhereException(): void
     {
         $model = $this->createModel();
@@ -191,6 +210,7 @@ final class ContextModelTest extends ContextTestCase
         $model->where('invalid_format');
     }
 
+    /** update 在没有 where 条件时，应抛出异常 */
     public function testUpdateWithoutWhereException(): void
     {
         $model = $this->createModel();
@@ -201,6 +221,7 @@ final class ContextModelTest extends ContextTestCase
         $model->update('user_name', 'test');
     }
 
+    /** delete 在没有 where 条件时，应抛出异常 */
     public function testDeleteWithoutWhereException(): void
     {
         $model = $this->createModel();

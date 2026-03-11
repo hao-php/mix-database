@@ -3,7 +3,7 @@
 namespace Haoa\MixDatabase\Context;
 
 use Haoa\MixDatabase\ConnectionInterface;
-use Haoa\MixDatabase\Database as MixDb;
+use Haoa\MixDatabase\Database as BaseDatabase;
 use Haoa\MixDatabase\LoggerInterface;
 use Haoa\Util\Context\RunContext;
 
@@ -20,7 +20,7 @@ use Haoa\Util\Context\RunContext;
 class Database
 {
 
-    private MixDb $db;
+    private BaseDatabase $db;
 
     public const RUN_CONTEXT_TX_KEY =  __CLASS__ . ':obj_transaction:';
 
@@ -102,7 +102,7 @@ class Database
     }
 
     /**
-     * @return MixDb|TransactionWrapper
+     * @return BaseDatabase|TransactionWrapper
      */
     private function getHandler()
     {

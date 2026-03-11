@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase as BaseTestCase;
-use Haoa\MixDatabase\Db\Database;
+use Haoa\MixDatabase\Context\Database;
 
 /**
  * Context 层数据库测试基类，单独使用 test_users 表，避免影响其他用例。
