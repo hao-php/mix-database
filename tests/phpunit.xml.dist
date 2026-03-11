@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php"
+         colors="true"
+         stopOnFailure="false">
+    <testsuites>
+        <testsuite name="All">
+            <directory>tests</directory>
+            <!-- 如需跳过 PoolTest（依赖 Swoole），可以取消下一行注释 -->
+            <!-- <exclude>tests/PoolTest.php</exclude> -->
+        </testsuite>
+    </testsuites>
+</phpunit>
+

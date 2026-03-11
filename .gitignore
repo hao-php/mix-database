@@ -24,3 +24,5 @@ vendor/
 phpunit.phar
 # local phpunit config
 /phpunit.xml
+/tests/db.example.php
+/.phpunit.result.cache
