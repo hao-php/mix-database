@@ -26,7 +26,7 @@ class Database
 
     public function __construct(string $dsn, string $username, string $password, array $options = [])
     {
-        $this->db = new MixDb($dsn, $username, $password, $options);
+        $this->db = new BaseDatabase($dsn, $username, $password, $options);
     }
 
     /**
