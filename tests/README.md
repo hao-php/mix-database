@@ -79,6 +79,32 @@ vendor/bin/phpunit --order-by=defects --do-not-cache-result
 
 > 一般开发场景可以直接使用 `--order-by=defects`，快速看到修复是否生效；若只是想“干净跑一轮”又不想影响缓存，可加上 `--do-not-cache-result`。
 
+### 定位执行很久的测试用例
+
+- **实时查看当前正在执行的用例**：
+
+```bash
+vendor/bin/phpunit --debug
+```
+
+  - 每个测试开始前会打印一行 `TestClass::testMethod`，卡住时最后一行就是当前跑得很久的用例。
+
+- **优先运行历史上最慢的用例**（基于缓存中的耗时）：
+
+```bash
+vendor/bin/phpunit --order-by=duration --debug
+```
+
+  - 先用默认命令跑一遍生成缓存，然后用上面的命令，可以很快看到哪些用例最慢。
+
+- **输出每个用例的耗时报告（JUnit 格式，可选）**：
+
+```bash
+vendor/bin/phpunit --log-junit tests/junit.xml
+```
+
+  - 打开 `tests/junit.xml`，每个 `<testcase>` 节点的 `time` 属性就是该用例的耗时，可按时间排序找到最慢的测试。
+
 ### 关于 PoolTest
 
 - `PoolTest.php` 依赖 Swoole 协程环境。
