@@ -2,6 +2,7 @@
 
 namespace Haoa\MixDatabase;
 
+use Haoa\MixDatabase\Driver\DriverInterface;
 use Haoa\MixDatabase\Pool\ConnectionPool;
 use Haoa\MixDatabase\Pool\Dialer;
 use Haoa\ObjectPool\Exception\WaitTimeoutException;
@@ -66,20 +67,15 @@ class Database
     protected $waitTimeout = 0.0;
 
     /**
-     * @var Driver
-     */
-    protected $dialer;
-
-    /**
      * 连接池
      * @var ConnectionPool
      */
     protected $pool;
 
     /**
-     * @var Driver
+     * @var Connector
      */
-    protected $driver;
+    protected $connector;
 
     /**
      * @var LoggerInterface
@@ -100,7 +96,7 @@ class Database
         $this->password = $password;
         $this->options = $options;
 
-        $this->driver = new Driver(
+        $this->connector = new Connector(
             $this->dsn,
             $this->username,
             $this->password,
@@ -110,9 +106,9 @@ class Database
 
     protected function createPool()
     {
-        if ($this->driver) {
-            $this->driver->close();
-            $this->driver = null;
+        if ($this->connector) {
+            $this->connector->close();
+            $this->connector = null;
         }
 
         $this->pool = new ConnectionPool(
@@ -212,6 +208,21 @@ class Database
     }
 
     /**
+     * 获取数据库驱动
+     * @return DriverInterface
+     */
+    public function getDriver(): DriverInterface
+    {
+        if ($this->connector) {
+            return $this->connector->driver();
+        }
+        $connector = $this->pool->borrow();
+        $driver = $connector->driver();
+        $connector->__return();
+        return $driver;
+    }
+
+    /**
      * Borrow connection
      * @return Connection
      * @throws WaitTimeoutException
@@ -219,10 +230,10 @@ class Database
     protected function borrow(): Connection
     {
         if ($this->pool) {
-            $driver = $this->pool->borrow();
-            $conn = new Connection($driver, $this->logger);
+            $connector = $this->pool->borrow();
+            $conn = new Connection($connector, $this->logger);
         } else {
-            $conn = new Connection($this->driver, $this->logger);
+            $conn = new Connection($this->connector, $this->logger);
         }
         return $conn;
     }
@@ -307,6 +318,17 @@ class Database
     public function table(string $table): ConnectionInterface
     {
         return $this->borrow()->table($table);
+    }
+
+    /**
+     * 透传驱动特有方法
+     * @param string $name
+     * @param array $arguments
+     * @return ConnectionInterface
+     */
+    public function __call($name, $arguments)
+    {
+        return $this->borrow()->$name(...$arguments);
     }
 
 }

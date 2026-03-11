@@ -49,22 +49,14 @@ class Connection extends AbstractConnection
     protected function call($name, $arguments = [])
     {
         try {
-            // 执行父类方法
             return call_user_func_array(parent::class . "::{$name}", $arguments);
         } catch (\Throwable $ex) {
-            if (static::isDisconnectException($ex) && !$this->inTransaction()) {
-                // 断开连接异常处理
+            if ($this->isDisconnectException($ex) && !$this->inTransaction()) {
                 $this->reconnect();
-                // 重连后允许再次执行
                 $this->executed = false;
-                // 重新执行方法
                 return $this->call($name, $arguments);
             } else {
-                // 不可在这里处理丢弃连接，会影响用户 try/catch 事务处理业务逻辑
-                // 会导致 commit rollback 时为 EmptyDriver
                 $this->exceptional = true;
-
-                // 抛出其他异常
                 throw $ex;
             }
         }
@@ -74,17 +66,16 @@ class Connection extends AbstractConnection
     {
         $this->executed = true;
 
-        // 回收
-        if (!$this->driver || $this->driver instanceof EmptyDriver) {
+        if (!$this->connector || $this->connector instanceof EmptyConnector) {
             return;
         }
         if ($this->exceptional || $this->inTransaction()) {
-            $this->driver->__discard();
-            $this->driver = new EmptyDriver();
+            $this->connector->__discard();
+            $this->connector = new EmptyConnector();
             return;
         }
-        $this->driver->__return();
-        $this->driver = new EmptyDriver();
+        $this->connector->__return();
+        $this->connector = new EmptyConnector();
     }
 
 }

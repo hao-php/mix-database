@@ -2,7 +2,7 @@
 
 namespace Haoa\MixDatabase\Pool;
 
-use Haoa\MixDatabase\Driver;
+use Haoa\MixDatabase\Connector;
 use Haoa\ObjectPool\DialerInterface;
 
 /**
@@ -53,11 +53,11 @@ class Dialer implements DialerInterface
 
     /**
      * Dial
-     * @return Driver
+     * @return Connector
      */
     public function dial(): object
     {
-        return new Driver(
+        return new Connector(
             $this->dsn,
             $this->username,
             $this->password,

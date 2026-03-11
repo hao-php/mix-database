@@ -2,20 +2,19 @@
 
 namespace Haoa\MixDatabase\Pool;
 
-use Haoa\MixDatabase\Driver;
+use Haoa\MixDatabase\Connector;
 use Haoa\ObjectPool\AbstractObjectPool;
 
 /**
  * Class ConnectionPool
  * @package Haoa\MixDatabase\Pool
- * @author liu,jian <coder.keda@gmail.com>
  */
 class ConnectionPool extends AbstractObjectPool
 {
 
     /**
      * 借用连接
-     * @return Driver
+     * @return Connector
      */
     public function borrow(): object
     {

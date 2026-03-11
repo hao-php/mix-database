@@ -2,13 +2,15 @@
 
 namespace Haoa\MixDatabase;
 
+use Haoa\MixDatabase\Driver\DriverFactory;
+use Haoa\MixDatabase\Driver\DriverInterface;
 use Haoa\ObjectPool\ObjectTrait;
 
 /**
- * Class Driver
- * @package Haoa\MixDatabase
+ * 连接器
+ * 管理 PDO 连接生命周期 + 池回收
  */
-class Driver
+class Connector
 {
 
     use ObjectTrait;
@@ -39,7 +41,12 @@ class Driver
     protected $pdo;
 
     /**
-     * 默认驱动连接选项
+     * @var DriverInterface
+     */
+    protected $driver;
+
+    /**
+     * 默认连接选项
      * @var array
      */
     protected $defaultOptions = [
@@ -49,7 +56,7 @@ class Driver
     ];
 
     /**
-     * Driver constructor.
+     * Connector constructor.
      * @param string $dsn
      * @param string $username
      * @param string $password
@@ -62,11 +69,12 @@ class Driver
         $this->username = $username;
         $this->password = $password;
         $this->options = $options;
+        $this->driver = DriverFactory::create($dsn);
         $this->connect();
     }
 
     /**
-     * Get instance
+     * 获取 PDO 实例
      * @return \PDO
      */
     public function instance(): \PDO
@@ -75,7 +83,16 @@ class Driver
     }
 
     /**
-     * Get options
+     * 获取数据库驱动
+     * @return DriverInterface
+     */
+    public function driver(): DriverInterface
+    {
+        return $this->driver;
+    }
+
+    /**
+     * 获取连接选项
      * @return array
      */
     public function options(): array
@@ -84,7 +101,7 @@ class Driver
     }
 
     /**
-     * Connect
+     * 建立连接
      * @throws \PDOException
      */
     public function connect()
@@ -98,7 +115,7 @@ class Driver
     }
 
     /**
-     * Close
+     * 关闭连接
      */
     public function close()
     {

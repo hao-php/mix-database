@@ -11,13 +11,13 @@ class Transaction extends Connection
 
     /**
      * Transaction constructor.
-     * @param Driver $driver
+     * @param Connector $connector
      * @param LoggerInterface|null $logger
      */
-    public function __construct(Driver $driver, ?LoggerInterface $logger)
+    public function __construct(Connector $connector, ?LoggerInterface $logger)
     {
-        parent::__construct($driver, $logger);
-        if (!$this->driver->instance()->beginTransaction()) {
+        parent::__construct($connector, $logger);
+        if (!$this->connector->instance()->beginTransaction()) {
             throw new \PDOException('Begin transaction failed');
         }
     }
@@ -28,10 +28,10 @@ class Transaction extends Connection
      */
     public function commit()
     {
-        if ($this->driver instanceof EmptyDriver) {
-            return; // 已经提交或回滚过了
+        if ($this->connector instanceof EmptyConnector) {
+            return;
         }
-        if (!$this->driver->instance()->commit()) {
+        if (!$this->connector->instance()->commit()) {
             throw new \PDOException('Commit transaction failed');
         }
         $this->__destruct();
@@ -43,10 +43,10 @@ class Transaction extends Connection
      */
     public function rollback()
     {
-        if ($this->driver instanceof EmptyDriver) {
-            return; // 已经提交或回滚过了
+        if ($this->connector instanceof EmptyConnector) {
+            return;
         }
-        if (!$this->driver->instance()->rollBack()) {
+        if (!$this->connector->instance()->rollBack()) {
             throw new \PDOException('Rollback transaction failed');
         }
         $this->__destruct();

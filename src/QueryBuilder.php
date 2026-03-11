@@ -2,12 +2,20 @@
 
 namespace Haoa\MixDatabase;
 
+use Haoa\MixDatabase\Driver\DriverInterface;
+
 /**
  * Trait QueryBuilder
  * @package Haoa\MixDatabase
  */
 trait QueryBuilder
 {
+
+    /**
+     * 获取数据库驱动（由使用此 trait 的类实现）
+     * @return DriverInterface
+     */
+    abstract protected function getDriver(): DriverInterface;
 
     /**
      * @var string
@@ -212,7 +220,7 @@ trait QueryBuilder
      */
     public function lockForUpdate(): ConnectionInterface
     {
-        $this->lock = 'FOR UPDATE';
+        $this->lock = $this->getDriver()->forUpdateSql();
         return $this;
     }
 
@@ -222,7 +230,7 @@ trait QueryBuilder
      */
     public function sharedLock(): ConnectionInterface
     {
-        $this->lock = 'LOCK IN SHARE MODE';
+        $this->lock = $this->getDriver()->sharedLockSql();
         return $this;
     }
 
@@ -336,8 +344,9 @@ trait QueryBuilder
 
         // limit and offset
         if ($this->limit > 0) {
-            $sqls[] = 'LIMIT ?, ?';
-            array_push($values, $this->offset, $this->limit);
+            list($limitSql, $limitValues) = $this->getDriver()->buildLimit($this->offset, $this->limit);
+            $sqls[] = $limitSql;
+            array_push($values, ...$limitValues);
         }
 
         // lock

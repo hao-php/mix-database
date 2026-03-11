@@ -2,6 +2,8 @@
 
 namespace Haoa\MixDatabase;
 
+use Haoa\MixDatabase\Driver\DriverInterface;
+
 /**
  * Class AbstractConnection
  * @package Haoa\MixDatabase
@@ -12,10 +14,10 @@ abstract class AbstractConnection implements ConnectionInterface
     use QueryBuilder;
 
     /**
-     * 驱动
-     * @var Driver
+     * 连接器
+     * @var Connector
      */
-    protected $driver;
+    protected $connector;
 
     /**
      * @var LoggerInterface
@@ -76,7 +78,7 @@ abstract class AbstractConnection implements ConnectionInterface
     protected $rowCount;
 
     /**
-     * 因为协程模式下每次执行完，Driver 会被回收，因此不允许复用 Connection，必须每次都从 Database->borrow()
+     * 因为协程模式下每次执行完，Connector 会被回收，因此不允许复用 Connection，必须每次都从 Database->borrow()
      * 为了保持与同步模式的兼容性，因此限制 Connection 不可多次执行
      * 事务在 commit rollback __destruct 之前可以多次执行
      * @var bool
@@ -85,14 +87,23 @@ abstract class AbstractConnection implements ConnectionInterface
 
     /**
      * AbstractConnection constructor.
-     * @param Driver $driver
+     * @param Connector $connector
      * @param LoggerInterface|null $logger
      */
-    public function __construct(Driver $driver, ?LoggerInterface $logger)
+    public function __construct(Connector $connector, ?LoggerInterface $logger)
     {
-        $this->driver = $driver;
+        $this->connector = $connector;
         $this->logger = $logger;
-        $this->options = $driver->options();
+        $this->options = $connector->options();
+    }
+
+    /**
+     * 获取数据库驱动
+     * @return DriverInterface
+     */
+    protected function getDriver(): DriverInterface
+    {
+        return $this->connector->driver();
     }
 
     /**
@@ -101,7 +112,7 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function connect(): void
     {
-        $this->driver->connect();
+        $this->connector->connect();
     }
 
     /**
@@ -110,7 +121,7 @@ abstract class AbstractConnection implements ConnectionInterface
     public function close(): void
     {
         $this->statement = null;
-        $this->driver->close();
+        $this->connector->close();
     }
 
     /**
@@ -128,21 +139,9 @@ abstract class AbstractConnection implements ConnectionInterface
      * @param \Throwable $ex
      * @return bool
      */
-    protected static function isDisconnectException(\Throwable $ex)
+    protected function isDisconnectException(\Throwable $ex)
     {
-        $disconnectMessages = [
-            'server has gone away',
-            'no connection to the server',
-            'Lost connection',
-            'is dead or not enabled',
-            'Error while sending',
-            'decryption failed or bad record mac',
-            'server closed the connection unexpectedly',
-            'SSL connection has been closed unexpectedly',
-            'Error writing data to the connection',
-            'Resource deadlock avoided',
-            'failed with errno',
-        ];
+        $disconnectMessages = $this->getDriver()->disconnectMessages();
         $errorMessage = $ex->getMessage();
         foreach ($disconnectMessages as $message) {
             if (false !== stripos($errorMessage, $message)) {
@@ -159,12 +158,10 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function raw(string $sql, ...$values): ConnectionInterface
     {
-        // 保存SQL
         $this->sql = $sql;
         $this->values = $values;
         $this->sqlData = [$this->sql, $this->params, $this->values, 0];
 
-        // 执行
         return $this->execute();
     }
 
@@ -214,14 +211,12 @@ abstract class AbstractConnection implements ConnectionInterface
             isset($this->lastInsertId) and $this->lastInsertId = null;
             isset($this->rowCount) and $this->rowCount = null;
             if (isset($ex)) {
-                // 有异常: 使用默认值, 不调用 driver, statement
                 $this->lastInsertId = '';
                 $this->rowCount = 0;
-            } elseif ($this->driver->pool && !$this instanceof Transaction) {
-                // 有pool: 提前缓存 lastInsertId, rowCount 让连接提前归还
+            } elseif ($this->connector->pool && !$this instanceof Transaction) {
                 try {
                     if (stripos($this->sql, 'INSERT INTO') !== false) {
-                        $this->lastInsertId = $this->driver->instance()->lastInsertId();
+                        $this->lastInsertId = $this->connector->instance()->lastInsertId();
                     } else {
                         $this->lastInsertId = '';
                     }
@@ -256,9 +251,9 @@ abstract class AbstractConnection implements ConnectionInterface
         // 执行完立即回收
         // 抛出异常时不回收，重连那里还需要验证是否在事务中
         // 事务除外，事务在 commit rollback __destruct 中回收
-        if ($this->driver->pool && !$this instanceof Transaction) {
-            $this->driver->__return();
-            $this->driver = new EmptyDriver();
+        if ($this->connector->pool && !$this instanceof Transaction) {
+            $this->connector->__return();
+            $this->connector = new EmptyConnector();
         }
 
         return $this;
@@ -286,7 +281,7 @@ abstract class AbstractConnection implements ConnectionInterface
                     $this->sql = str_replace($k, $v->__toString(), $this->sql);
                 }
             }
-            $statement = $this->driver->instance()->prepare($this->sql);
+            $statement = $this->connector->instance()->prepare($this->sql);
             if (!$statement) {
                 throw new \PDOException('PDO prepare failed');
             }
@@ -298,7 +293,7 @@ abstract class AbstractConnection implements ConnectionInterface
                 }
             }
         } elseif (!empty($this->values)) { // 值绑定
-            $statement = $this->driver->instance()->prepare($this->sql);
+            $statement = $this->connector->instance()->prepare($this->sql);
             if (!$statement) {
                 throw new \PDOException('PDO prepare failed');
             }
@@ -310,7 +305,7 @@ abstract class AbstractConnection implements ConnectionInterface
                 }
             }
         } else { // 无参数
-            $statement = $this->driver->instance()->prepare($this->sql);
+            $statement = $this->connector->instance()->prepare($this->sql);
             if (!$statement) {
                 throw new \PDOException('PDO prepare failed');
             }
@@ -440,7 +435,6 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function statement(): \PDOStatement
     {
-        // check debug
         if (!$this->debug) {
             throw new \RuntimeException('Can only be used in debug closure');
         }
@@ -499,8 +493,8 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function lastInsertId(): string
     {
-        if (!isset($this->lastInsertId) && $this->driver instanceof Driver) {
-            $this->lastInsertId = $this->driver->instance()->lastInsertId();
+        if (!isset($this->lastInsertId) && $this->connector instanceof Connector) {
+            $this->lastInsertId = $this->connector->instance()->lastInsertId();
         }
         return $this->lastInsertId;
     }
@@ -511,7 +505,7 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function rowCount(): int
     {
-        if (!isset($this->rowCount) && $this->driver instanceof Driver) {
+        if (!isset($this->rowCount) && $this->connector instanceof Connector) {
             $this->rowCount = $this->statement->rowCount();
         }
         return $this->rowCount;
@@ -572,11 +566,14 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function insert(string $table, array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
+        $driver = $this->getDriver();
         $keys = array_keys($data);
         $fields = array_map(function ($key) {
             return ":{$key}";
         }, $keys);
-        $sql = "{$insert} `{$table}` (`" . implode('`, `', $keys) . "`) VALUES (" . implode(', ', $fields) . ")";
+        $qTable = $driver->quoteIdentifier($table);
+        $qKeys = implode(', ', array_map([$driver, 'quoteIdentifier'], $keys));
+        $sql = "{$insert} {$qTable} ({$qKeys}) VALUES (" . implode(', ', $fields) . ")";
         $this->params = array_merge($this->params, $data);
         return $this->exec($sql);
     }
@@ -589,15 +586,17 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function batchInsert(string $table, array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
+        $driver = $this->getDriver();
         $keys = array_keys($data[0]);
-        $sql = "{$insert} `{$table}` (`" . implode('`, `', $keys) . "`) VALUES ";
+        $qTable = $driver->quoteIdentifier($table);
+        $qKeys = implode(', ', array_map([$driver, 'quoteIdentifier'], $keys));
+        $sql = "{$insert} {$qTable} ({$qKeys}) VALUES ";
         $values = [];
         $subSql = [];
         foreach ($data as $item) {
             $placeholder = [];
             foreach ($keys as $key) {
                 $value = $item[$key];
-                // 原始方法
                 if ($value instanceof Expr) {
                     $placeholder[] = $value->__toString();
                     continue;
@@ -617,7 +616,7 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function inTransaction(): bool
     {
-        $pdo = $this->driver->instance();
+        $pdo = $this->connector->instance();
         return (bool)($pdo ? $pdo->inTransaction() : false);
     }
 
@@ -644,9 +643,36 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function beginTransaction(): Transaction
     {
-        $driver = $this->driver;
-        $this->driver = null; // 使其在析构时不回收
-        return new Transaction($driver, $this->logger);
+        $connector = $this->connector;
+        $this->connector = null; // 使其在析构时不回收
+        return new Transaction($connector, $this->logger);
+    }
+
+    /**
+     * 透传驱动特有方法
+     * 驱动方法命名约定: build + ucfirst(方法名)
+     * 返回格式: ['sql' => ..., 'params' => ...] 或 ['sql' => ..., 'values' => ...]
+     *
+     * @param string $name
+     * @param array $arguments
+     * @return ConnectionInterface
+     * @throws \BadMethodCallException
+     */
+    public function __call($name, $arguments)
+    {
+        $driver = $this->getDriver();
+        $buildMethod = 'build' . ucfirst($name);
+        if (!method_exists($driver, $buildMethod)) {
+            throw new \BadMethodCallException(
+                sprintf('Method %s is not supported by %s', $name, get_class($driver))
+            );
+        }
+        $result = $driver->$buildMethod(...$arguments);
+        if (isset($result['params'])) {
+            $this->params = array_merge($this->params, $result['params']);
+            return $this->exec($result['sql']);
+        }
+        return $this->exec($result['sql'], ...($result['values'] ?? []));
     }
 
 }

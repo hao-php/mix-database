@@ -1,6 +1,6 @@
 {
   "name": "haoa/mix-database",
-  "description": "Simple database for use in multiple execution environments, with support for FPM, Swoole, Workerman, and optional pools",
+  "description": "Simple database for use in multiple execution environments, with support for MySQL, PostgreSQL, FPM, Swoole, Workerman, and optional pools",
   "type": "library",
   "require": {
     "php": ">=7.2.0",
