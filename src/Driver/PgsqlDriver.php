@@ -9,15 +9,6 @@ class PgsqlDriver implements DriverInterface
 {
 
     /**
-     * @param string $identifier
-     * @return string
-     */
-    public function quoteIdentifier(string $identifier): string
-    {
-        return '"' . str_replace('"', '""', $identifier) . '"';
-    }
-
-    /**
      * PostgreSQL LIMIT 语法: LIMIT count OFFSET offset
      * @param int $offset
      * @param int $limit
@@ -73,25 +64,22 @@ class PgsqlDriver implements DriverInterface
     public function buildInsertOnConflict(string $table, array $data, $conflictTarget, array $updateColumns = []): array
     {
         $keys = array_keys($data);
-        $qTable = $this->quoteIdentifier($table);
-        $qKeys = implode(', ', array_map([$this, 'quoteIdentifier'], $keys));
         $placeholders = implode(', ', array_fill(0, count($keys), '?'));
         $values = array_values($data);
 
         if (is_string($conflictTarget)) {
             $conflictTarget = [$conflictTarget];
         }
-        $qConflict = implode(', ', array_map([$this, 'quoteIdentifier'], $conflictTarget));
+        $conflictList = implode(', ', $conflictTarget);
 
         if (empty($updateColumns)) {
-            $sql = "INSERT INTO {$qTable} ({$qKeys}) VALUES ({$placeholders}) ON CONFLICT ({$qConflict}) DO NOTHING";
+            $sql = "INSERT INTO {$table} (" . implode(', ', $keys) . ") VALUES ({$placeholders}) ON CONFLICT ({$conflictList}) DO NOTHING";
         } else {
             $updateParts = [];
             foreach ($updateColumns as $col) {
-                $qCol = $this->quoteIdentifier($col);
-                $updateParts[] = "{$qCol} = EXCLUDED.{$qCol}";
+                $updateParts[] = "{$col} = EXCLUDED.{$col}";
             }
-            $sql = "INSERT INTO {$qTable} ({$qKeys}) VALUES ({$placeholders}) ON CONFLICT ({$qConflict}) DO UPDATE SET " . implode(', ', $updateParts);
+            $sql = "INSERT INTO {$table} (" . implode(', ', $keys) . ") VALUES ({$placeholders}) ON CONFLICT ({$conflictList}) DO UPDATE SET " . implode(', ', $updateParts);
         }
 
         return ['sql' => $sql, 'values' => $values];
@@ -110,9 +98,7 @@ class PgsqlDriver implements DriverInterface
         $fields = array_map(function ($key) {
             return ":{$key}";
         }, $keys);
-        $qTable = $this->quoteIdentifier($table);
-        $qKeys = implode(', ', array_map([$this, 'quoteIdentifier'], $keys));
-        $sql = "INSERT INTO {$qTable} ({$qKeys}) VALUES (" . implode(', ', $fields) . ") RETURNING {$returning}";
+        $sql = "INSERT INTO {$table} (" . implode(', ', $keys) . ") VALUES (" . implode(', ', $fields) . ") RETURNING {$returning}";
         return ['sql' => $sql, 'params' => $data];
     }
 

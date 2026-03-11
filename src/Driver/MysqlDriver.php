@@ -9,15 +9,6 @@ class MysqlDriver implements DriverInterface
 {
 
     /**
-     * @param string $identifier
-     * @return string
-     */
-    public function quoteIdentifier(string $identifier): string
-    {
-        return '`' . str_replace('`', '``', $identifier) . '`';
-    }
-
-    /**
      * MySQL LIMIT 语法: LIMIT offset, count
      * @param int $offset
      * @param int $limit
@@ -76,9 +67,7 @@ class MysqlDriver implements DriverInterface
         $fields = array_map(function ($key) {
             return ":{$key}";
         }, $keys);
-        $qTable = $this->quoteIdentifier($table);
-        $qKeys = implode(', ', array_map([$this, 'quoteIdentifier'], $keys));
-        $sql = "REPLACE INTO {$qTable} ({$qKeys}) VALUES (" . implode(', ', $fields) . ")";
+        $sql = "REPLACE INTO {$table} (" . implode(', ', $keys) . ") VALUES (" . implode(', ', $fields) . ")";
         return ['sql' => $sql, 'params' => $data];
     }
 
@@ -92,18 +81,15 @@ class MysqlDriver implements DriverInterface
     public function buildInsertOnDuplicateKey(string $table, array $data, array $updateColumns): array
     {
         $keys = array_keys($data);
-        $qTable = $this->quoteIdentifier($table);
-        $qKeys = implode(', ', array_map([$this, 'quoteIdentifier'], $keys));
         $placeholders = implode(', ', array_fill(0, count($keys), '?'));
         $values = array_values($data);
 
         $updateParts = [];
         foreach ($updateColumns as $col) {
-            $qCol = $this->quoteIdentifier($col);
-            $updateParts[] = "{$qCol} = VALUES({$qCol})";
+            $updateParts[] = "{$col} = VALUES({$col})";
         }
 
-        $sql = "INSERT INTO {$qTable} ({$qKeys}) VALUES ({$placeholders}) ON DUPLICATE KEY UPDATE " . implode(', ', $updateParts);
+        $sql = "INSERT INTO {$table} (" . implode(', ', $keys) . ") VALUES ({$placeholders}) ON DUPLICATE KEY UPDATE " . implode(', ', $updateParts);
         return ['sql' => $sql, 'values' => $values];
     }
 

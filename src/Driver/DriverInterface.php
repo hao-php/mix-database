@@ -10,14 +10,6 @@ interface DriverInterface
 {
 
     /**
-     * 标识符引用
-     * MySQL: `name`  PgSQL: "name"
-     * @param string $identifier
-     * @return string
-     */
-    public function quoteIdentifier(string $identifier): string;
-
-    /**
      * 构建 LIMIT 子句
      * @param int $offset
      * @param int $limit

@@ -566,14 +566,11 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function insert(string $table, array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
-        $driver = $this->getDriver();
         $keys = array_keys($data);
         $fields = array_map(function ($key) {
             return ":{$key}";
         }, $keys);
-        $qTable = $driver->quoteIdentifier($table);
-        $qKeys = implode(', ', array_map([$driver, 'quoteIdentifier'], $keys));
-        $sql = "{$insert} {$qTable} ({$qKeys}) VALUES (" . implode(', ', $fields) . ")";
+        $sql = "{$insert} {$table} (" . implode(', ', $keys) . ") VALUES (" . implode(', ', $fields) . ")";
         $this->params = array_merge($this->params, $data);
         return $this->exec($sql);
     }
@@ -586,11 +583,8 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function batchInsert(string $table, array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
-        $driver = $this->getDriver();
         $keys = array_keys($data[0]);
-        $qTable = $driver->quoteIdentifier($table);
-        $qKeys = implode(', ', array_map([$driver, 'quoteIdentifier'], $keys));
-        $sql = "{$insert} {$qTable} ({$qKeys}) VALUES ";
+        $sql = "{$insert} {$table} (" . implode(', ', $keys) . ") VALUES ";
         $values = [];
         $subSql = [];
         foreach ($data as $item) {

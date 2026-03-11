@@ -46,13 +46,6 @@ final class DriverTest extends TestCase
 
     // ==================== MysqlDriver 方言测试 ====================
 
-    public function testMysqlQuoteIdentifier(): void
-    {
-        $driver = new MysqlDriver();
-        $this->assertEquals('`users`', $driver->quoteIdentifier('users'));
-        $this->assertEquals('`user``name`', $driver->quoteIdentifier('user`name'));
-    }
-
     public function testMysqlBuildLimit(): void
     {
         $driver = new MysqlDriver();
@@ -82,13 +75,6 @@ final class DriverTest extends TestCase
     }
 
     // ==================== PgsqlDriver 方言测试 ====================
-
-    public function testPgsqlQuoteIdentifier(): void
-    {
-        $driver = new PgsqlDriver();
-        $this->assertEquals('"users"', $driver->quoteIdentifier('users'));
-        $this->assertEquals('"user""name"', $driver->quoteIdentifier('user"name'));
-    }
 
     public function testPgsqlBuildLimit(): void
     {
@@ -125,10 +111,9 @@ final class DriverTest extends TestCase
     {
         $driver = new MysqlDriver();
         $result = $driver->buildReplaceInsert('users', ['name' => 'foo', 'balance' => 10]);
-        $this->assertStringContainsString('REPLACE INTO', $result['sql']);
-        $this->assertStringContainsString('`users`', $result['sql']);
-        $this->assertStringContainsString('`name`', $result['sql']);
-        $this->assertStringContainsString('`balance`', $result['sql']);
+        $this->assertStringContainsString('REPLACE INTO users', $result['sql']);
+        $this->assertStringContainsString('name', $result['sql']);
+        $this->assertStringContainsString('balance', $result['sql']);
         $this->assertArrayHasKey('params', $result);
         $this->assertEquals(['name' => 'foo', 'balance' => 10], $result['params']);
     }
@@ -139,7 +124,7 @@ final class DriverTest extends TestCase
         $result = $driver->buildInsertOnDuplicateKey('users', ['name' => 'foo', 'balance' => 10], ['balance']);
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
         $this->assertStringContainsString('ON DUPLICATE KEY UPDATE', $result['sql']);
-        $this->assertStringContainsString('`balance` = VALUES(`balance`)', $result['sql']);
+        $this->assertStringContainsString('balance = VALUES(balance)', $result['sql']);
         $this->assertArrayHasKey('values', $result);
         $this->assertEquals(['foo', 10], $result['values']);
     }
@@ -151,7 +136,7 @@ final class DriverTest extends TestCase
         $driver = new PgsqlDriver();
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], 'name');
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
-        $this->assertStringContainsString('ON CONFLICT ("name") DO NOTHING', $result['sql']);
+        $this->assertStringContainsString('ON CONFLICT (name) DO NOTHING', $result['sql']);
         $this->assertArrayHasKey('values', $result);
     }
 
@@ -159,15 +144,15 @@ final class DriverTest extends TestCase
     {
         $driver = new PgsqlDriver();
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], 'name', ['balance']);
-        $this->assertStringContainsString('ON CONFLICT ("name") DO UPDATE SET', $result['sql']);
-        $this->assertStringContainsString('"balance" = EXCLUDED."balance"', $result['sql']);
+        $this->assertStringContainsString('ON CONFLICT (name) DO UPDATE SET', $result['sql']);
+        $this->assertStringContainsString('balance = EXCLUDED.balance', $result['sql']);
     }
 
     public function testPgsqlBuildInsertOnConflictMultipleColumns(): void
     {
         $driver = new PgsqlDriver();
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], ['name', 'balance']);
-        $this->assertStringContainsString('ON CONFLICT ("name", "balance") DO NOTHING', $result['sql']);
+        $this->assertStringContainsString('ON CONFLICT (name, balance) DO NOTHING', $result['sql']);
     }
 
     public function testPgsqlBuildInsertReturning(): void
