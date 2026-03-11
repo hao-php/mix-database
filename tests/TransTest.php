@@ -140,4 +140,42 @@ final class TransTest extends TestCase
         });
     }
 
+    // commit 后数据应持久化到数据库
+    public function testCommitPersistsData(): void
+    {
+        $db = db();
+
+        $name = 'tx_commit_' . uniqid('', false);
+        $before = count($db->table('users')->where('name = ?', $name)->get());
+
+        $tx = $db->beginTransaction();
+        $tx->insert('users', [
+            'name' => $name,
+            'balance' => 0,
+        ]);
+        $tx->commit();
+
+        $after = count($db->table('users')->where('name = ?', $name)->get());
+        $this->assertEquals($before + 1, $after);
+    }
+
+    // rollback 后数据不应持久化到数据库
+    public function testRollbackDoesNotPersistData(): void
+    {
+        $db = db();
+
+        $name = 'tx_rollback_' . uniqid('', false);
+        $before = count($db->table('users')->where('name = ?', $name)->get());
+
+        $tx = $db->beginTransaction();
+        $tx->insert('users', [
+            'name' => $name,
+            'balance' => 0,
+        ]);
+        $tx->rollback();
+
+        $after = count($db->table('users')->where('name = ?', $name)->get());
+        $this->assertEquals($before, $after);
+    }
+
 }

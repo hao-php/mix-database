@@ -32,18 +32,27 @@ vendor/bin/phpunit -c tests/phpunit.xml.dist
 vendor/bin/phpunit --bootstrap=tests/bootstrap.php tests
 ```
 
-### 使用脚本运行单个测试文件
+### 使用脚本运行单个测试文件 / 方法
 
 在项目根目录下：
 
+- **只跑某个测试文件**：
+
 ```bash
 tests/phpunit.sh tests/InsertTest.php
+```
+
+- **只跑某个测试方法**（例如 `PoolTest::testQueryTriggersCoroutineSwitch`）：
+
+```bash
+tests/phpunit.sh "tests/PoolTest.php --filter testQueryTriggersCoroutineSwitch"
 ```
 
 说明：
 - `tests/phpunit.sh` 要求必须传入一个参数（测试目标），可以是：
   - 单个文件：`tests/InsertTest.php`
   - 目录：`tests`
+  - 携带额外参数的一整串字符串（例如上面的 `tests/PoolTest.php --filter ...`）
 - 脚本实际执行命令等价于：
 
 ```bash

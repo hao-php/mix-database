@@ -52,6 +52,36 @@ final class PoolTest extends TestCase
         swoole_co_run($func);
     }
 
+    public function testQueryTriggersCoroutineSwitch(): void
+    {
+        $_this = $this;
+        $func = function () use ($_this) {
+            $pool = pool();
+            $chan = new \Swoole\Coroutine\Channel(2);
+
+            $start = microtime(true);
+
+            for ($i = 0; $i < 2; $i++) {
+                go(function () use ($pool, $chan) {
+                    // 模拟耗时查询，依赖 Swoole 协程 hook + 连接池触发切换
+                    $pool->raw('select sleep(1)')->queryAll();
+                    $chan->push(true);
+                });
+            }
+
+            $chan->pop();
+            $chan->pop();
+
+            $duration = microtime(true) - $start;
+
+            // 如果查询在同一个协程串行执行，大约需要 2 秒；
+            // 若触发协程切换并并发执行，则总耗时应接近 1 秒。
+            $_this->assertTrue($duration > 0.8 && $duration < 1.8, 'duration=' . $duration);
+        };
+
+        swoole_co_run($func);
+    }
+
     /*
     public function testMaxLifetime(): void
     {
