@@ -105,15 +105,67 @@ final class DriverTest extends TestCase
         $this->assertContains('connection is closed', $messages);
     }
 
+    // ==================== MysqlDriver 引号处理测试 ====================
+
+    public function testMysqlGetQuoteChar(): void
+    {
+        $driver = new MysqlDriver();
+        $this->assertEquals(['`', '`'], $driver->getQuoteChar());
+    }
+
+    public function testMysqlQuoteTableName(): void
+    {
+        $driver = new MysqlDriver();
+        $this->assertEquals('`users`', $driver->quoteTableName('users'));
+        $this->assertEquals('`users` AS `u`', $driver->quoteTableName('users AS u'));
+        $this->assertEquals('`users` `u`', $driver->quoteTableName('users u'));
+        $this->assertEquals('`users`', $driver->quoteTableName('`users`'));
+    }
+
+    public function testMysqlQuoteColumnName(): void
+    {
+        $driver = new MysqlDriver();
+        $this->assertEquals('`name`', $driver->quoteColumnName('name'));
+        $this->assertEquals('`users`.`name`', $driver->quoteColumnName('users.name'));
+        $this->assertEquals('`name`', $driver->quoteColumnName('`name`'));
+        $this->assertEquals('*', $driver->quoteColumnName('*'));
+    }
+
+    // ==================== PgsqlDriver 引号处理测试 ====================
+
+    public function testPgsqlGetQuoteChar(): void
+    {
+        $driver = new PgsqlDriver();
+        $this->assertEquals(['"', '"'], $driver->getQuoteChar());
+    }
+
+    public function testPgsqlQuoteTableName(): void
+    {
+        $driver = new PgsqlDriver();
+        $this->assertEquals('"users"', $driver->quoteTableName('users'));
+        $this->assertEquals('"users" AS "u"', $driver->quoteTableName('users AS u'));
+        $this->assertEquals('"users" "u"', $driver->quoteTableName('users u'));
+        $this->assertEquals('"users"', $driver->quoteTableName('"users"'));
+    }
+
+    public function testPgsqlQuoteColumnName(): void
+    {
+        $driver = new PgsqlDriver();
+        $this->assertEquals('"name"', $driver->quoteColumnName('name'));
+        $this->assertEquals('"users"."name"', $driver->quoteColumnName('users.name'));
+        $this->assertEquals('"name"', $driver->quoteColumnName('"name"'));
+        $this->assertEquals('*', $driver->quoteColumnName('*'));
+    }
+
     // ==================== MysqlDriver 特有方法测试 ====================
 
     public function testMysqlBuildReplaceInsert(): void
     {
         $driver = new MysqlDriver();
         $result = $driver->buildReplaceInsert('users', ['name' => 'foo', 'balance' => 10]);
-        $this->assertStringContainsString('REPLACE INTO users', $result['sql']);
-        $this->assertStringContainsString('name', $result['sql']);
-        $this->assertStringContainsString('balance', $result['sql']);
+        $this->assertStringContainsString('REPLACE INTO `users`', $result['sql']);
+        $this->assertStringContainsString('`name`', $result['sql']);
+        $this->assertStringContainsString('`balance`', $result['sql']);
         $this->assertArrayHasKey('params', $result);
         $this->assertEquals(['name' => 'foo', 'balance' => 10], $result['params']);
     }
@@ -123,8 +175,9 @@ final class DriverTest extends TestCase
         $driver = new MysqlDriver();
         $result = $driver->buildInsertOnDuplicateKey('users', ['name' => 'foo', 'balance' => 10], ['balance']);
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
+        $this->assertStringContainsString('`users`', $result['sql']);
         $this->assertStringContainsString('ON DUPLICATE KEY UPDATE', $result['sql']);
-        $this->assertStringContainsString('balance = VALUES(balance)', $result['sql']);
+        $this->assertStringContainsString('`balance` = VALUES(`balance`)', $result['sql']);
         $this->assertArrayHasKey('values', $result);
         $this->assertEquals(['foo', 10], $result['values']);
     }
@@ -136,7 +189,8 @@ final class DriverTest extends TestCase
         $driver = new PgsqlDriver();
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], 'name');
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
-        $this->assertStringContainsString('ON CONFLICT (name) DO NOTHING', $result['sql']);
+        $this->assertStringContainsString('"users"', $result['sql']);
+        $this->assertStringContainsString('ON CONFLICT ("name") DO NOTHING', $result['sql']);
         $this->assertArrayHasKey('values', $result);
     }
 
@@ -144,15 +198,15 @@ final class DriverTest extends TestCase
     {
         $driver = new PgsqlDriver();
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], 'name', ['balance']);
-        $this->assertStringContainsString('ON CONFLICT (name) DO UPDATE SET', $result['sql']);
-        $this->assertStringContainsString('balance = EXCLUDED.balance', $result['sql']);
+        $this->assertStringContainsString('ON CONFLICT ("name") DO UPDATE SET', $result['sql']);
+        $this->assertStringContainsString('"balance" = EXCLUDED."balance"', $result['sql']);
     }
 
     public function testPgsqlBuildInsertOnConflictMultipleColumns(): void
     {
         $driver = new PgsqlDriver();
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], ['name', 'balance']);
-        $this->assertStringContainsString('ON CONFLICT (name, balance) DO NOTHING', $result['sql']);
+        $this->assertStringContainsString('ON CONFLICT ("name", "balance") DO NOTHING', $result['sql']);
     }
 
     public function testPgsqlBuildInsertReturning(): void
@@ -160,7 +214,8 @@ final class DriverTest extends TestCase
         $driver = new PgsqlDriver();
         $result = $driver->buildInsertReturning('users', ['name' => 'foo', 'balance' => 10], 'id');
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
-        $this->assertStringContainsString('RETURNING id', $result['sql']);
+        $this->assertStringContainsString('"users"', $result['sql']);
+        $this->assertStringContainsString('RETURNING "id"', $result['sql']);
         $this->assertArrayHasKey('params', $result);
     }
 

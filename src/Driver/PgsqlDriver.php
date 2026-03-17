@@ -54,6 +54,95 @@ class PgsqlDriver implements DriverInterface
     }
 
     /**
+     * 获取标识符引号字符
+     * @return array
+     */
+    public function getQuoteChar(): array
+    {
+        return ['"', '"'];
+    }
+
+    /**
+     * 引号表名（处理别名）
+     * @param string $table
+     * @return string
+     */
+    public function quoteTableName(string $table): string
+    {
+        // 检查是否已有引号
+        if ($this->isQuoted($table)) {
+            return $table;
+        }
+
+        // 处理别名：支持 "table AS alias" 和 "table alias" 两种格式
+        $table = preg_replace('/\s+AS\s+/i', ' AS ', $table);
+
+        // 尝试匹配 "name AS alias" 或 "name alias" 格式
+        if (preg_match('/^(\S+)(?:\s+(AS)\s+|\s+)(\S+)$/i', $table, $matches)) {
+            $tableName = $this->quoteIdentifier($matches[1]);
+            $alias = $this->quoteIdentifier($matches[3]);
+            $asKeyword = isset($matches[2]) && strtoupper($matches[2]) === 'AS' ? ' AS ' : ' ';
+            return $tableName . $asKeyword . $alias;
+        }
+
+        // 无别名，直接引号
+        return $this->quoteIdentifier($table);
+    }
+
+    /**
+     * 引号列名（处理表名前缀）
+     * @param string $column
+     * @return string
+     */
+    public function quoteColumnName(string $column): string
+    {
+        // 检查是否已有引号
+        if ($this->isQuoted($column)) {
+            return $column;
+        }
+
+        // 处理 "*" 特殊情况
+        if ($column === '*') {
+            return $column;
+        }
+
+        // 处理 "table.column" 格式
+        if (strpos($column, '.') !== false) {
+            $parts = explode('.', $column);
+            $quotedParts = array_map([$this, 'quoteIdentifier'], $parts);
+            return implode('.', $quotedParts);
+        }
+
+        return $this->quoteIdentifier($column);
+    }
+
+    /**
+     * 检查标识符是否已被引号
+     * @param string $identifier
+     * @return bool
+     */
+    protected function isQuoted(string $identifier): bool
+    {
+        return preg_match('/^"[^"]+"$/', $identifier) === 1;
+    }
+
+    /**
+     * 引号单个标识符
+     * @param string $identifier
+     * @return string
+     */
+    protected function quoteIdentifier(string $identifier): string
+    {
+        // 如果已被引号，直接返回
+        if ($this->isQuoted($identifier)) {
+            return $identifier;
+        }
+        // 转义标识符中的双引号
+        $identifier = str_replace('"', '""', $identifier);
+        return "\"{$identifier}\"";
+    }
+
+    /**
      * 构建 INSERT ... ON CONFLICT 语句（PostgreSQL 特有）
      * @param string $table
      * @param array $data
@@ -63,23 +152,27 @@ class PgsqlDriver implements DriverInterface
      */
     public function buildInsertOnConflict(string $table, array $data, $conflictTarget, array $updateColumns = []): array
     {
+        $quotedTable = $this->quoteTableName($table);
         $keys = array_keys($data);
+        $quotedKeys = array_map([$this, 'quoteColumnName'], $keys);
         $placeholders = implode(', ', array_fill(0, count($keys), '?'));
         $values = array_values($data);
 
         if (is_string($conflictTarget)) {
             $conflictTarget = [$conflictTarget];
         }
-        $conflictList = implode(', ', $conflictTarget);
+        $quotedConflict = array_map([$this, 'quoteColumnName'], $conflictTarget);
+        $conflictList = implode(', ', $quotedConflict);
 
         if (empty($updateColumns)) {
-            $sql = "INSERT INTO {$table} (" . implode(', ', $keys) . ") VALUES ({$placeholders}) ON CONFLICT ({$conflictList}) DO NOTHING";
+            $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES ({$placeholders}) ON CONFLICT ({$conflictList}) DO NOTHING";
         } else {
             $updateParts = [];
             foreach ($updateColumns as $col) {
-                $updateParts[] = "{$col} = EXCLUDED.{$col}";
+                $quotedCol = $this->quoteColumnName($col);
+                $updateParts[] = "{$quotedCol} = EXCLUDED.{$quotedCol}";
             }
-            $sql = "INSERT INTO {$table} (" . implode(', ', $keys) . ") VALUES ({$placeholders}) ON CONFLICT ({$conflictList}) DO UPDATE SET " . implode(', ', $updateParts);
+            $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES ({$placeholders}) ON CONFLICT ({$conflictList}) DO UPDATE SET " . implode(', ', $updateParts);
         }
 
         return ['sql' => $sql, 'values' => $values];
@@ -94,11 +187,19 @@ class PgsqlDriver implements DriverInterface
      */
     public function buildInsertReturning(string $table, array $data, string $returning = '*'): array
     {
+        $quotedTable = $this->quoteTableName($table);
         $keys = array_keys($data);
+        $quotedKeys = array_map([$this, 'quoteColumnName'], $keys);
         $fields = array_map(function ($key) {
             return ":{$key}";
         }, $keys);
-        $sql = "INSERT INTO {$table} (" . implode(', ', $keys) . ") VALUES (" . implode(', ', $fields) . ") RETURNING {$returning}";
+
+        // 处理 RETURNING 子句
+        if ($returning !== '*') {
+            $returning = $this->quoteColumnName($returning);
+        }
+
+        $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES (" . implode(', ', $fields) . ") RETURNING {$returning}";
         return ['sql' => $sql, 'params' => $data];
     }
 

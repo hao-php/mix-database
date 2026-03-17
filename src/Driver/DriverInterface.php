@@ -36,4 +36,25 @@ interface DriverInterface
      */
     public function disconnectMessages(): array;
 
+    /**
+     * 获取标识符引号字符
+     * MySQL 返回 ['`', '`']，PostgreSQL 返回 ['"', '"']
+     * @return array [左引号, 右引号]
+     */
+    public function getQuoteChar(): array;
+
+    /**
+     * 引号表名（处理别名）
+     * @param string $table 表名，可能包含别名如 "users AS u" 或 "users u"
+     * @return string 引号后的表名
+     */
+    public function quoteTableName(string $table): string;
+
+    /**
+     * 引号列名（处理表名前缀）
+     * @param string $column 列名，可能包含表名前缀如 "users.name"
+     * @return string 引号后的列名
+     */
+    public function quoteColumnName(string $column): string;
+
 }

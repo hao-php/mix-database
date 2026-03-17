@@ -566,11 +566,14 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function insert(string $table, array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
+        $driver = $this->getDriver();
+        $quotedTable = $driver->quoteTableName($table);
         $keys = array_keys($data);
+        $quotedKeys = array_map([$driver, 'quoteColumnName'], $keys);
         $fields = array_map(function ($key) {
             return ":{$key}";
         }, $keys);
-        $sql = "{$insert} {$table} (" . implode(', ', $keys) . ") VALUES (" . implode(', ', $fields) . ")";
+        $sql = "{$insert} {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES (" . implode(', ', $fields) . ")";
         $this->params = array_merge($this->params, $data);
         return $this->exec($sql);
     }
@@ -583,8 +586,11 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function batchInsert(string $table, array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
+        $driver = $this->getDriver();
+        $quotedTable = $driver->quoteTableName($table);
         $keys = array_keys($data[0]);
-        $sql = "{$insert} {$table} (" . implode(', ', $keys) . ") VALUES ";
+        $quotedKeys = array_map([$driver, 'quoteColumnName'], $keys);
+        $sql = "{$insert} {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES ";
         $values = [];
         $subSql = [];
         foreach ($data as $item) {

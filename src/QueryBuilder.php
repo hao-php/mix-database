@@ -241,12 +241,15 @@ trait QueryBuilder
      */
     protected function build(string $index, array $data = []): array
     {
+        $driver = $this->getDriver();
         $sqls = $values = [];
 
         // select
         if ($index == 'SELECT') {
             if ($this->select) {
-                $select = implode(', ', $this->select);
+                // 处理列名引号
+                $quotedSelect = array_map([$driver, 'quoteColumnName'], $this->select);
+                $select = implode(', ', $quotedSelect);
                 $sqls[] = "SELECT {$select}";
             } else {
                 $sqls[] = "SELECT *";
@@ -260,20 +263,22 @@ trait QueryBuilder
 
         // table
         if ($this->table) {
+            $quotedTable = $driver->quoteTableName($this->table);
             // update
             if ($index == 'UPDATE') {
                 $set = [];
                 foreach ($data as $k => $v) {
+                    $quotedK = $driver->quoteColumnName($k);
                     if ($v instanceof Expr) {
-                        $set[] = "$k = {$v->__toString()}";
+                        $set[] = "{$quotedK} = {$v->__toString()}";
                     } else {
-                        $set[] = "$k = ?";
+                        $set[] = "{$quotedK} = ?";
                         $values[] = $v;
                     }
                 }
-                $sqls[] = "UPDATE {$this->table} SET " . implode(', ', $set);
+                $sqls[] = "UPDATE {$quotedTable} SET " . implode(', ', $set);
             } else {
-                $sqls[] = "FROM {$this->table}";
+                $sqls[] = "FROM {$quotedTable}";
             }
         }
 
@@ -281,7 +286,8 @@ trait QueryBuilder
         if ($this->join) {
             foreach ($this->join as $item) {
                 list($keyword, $table, $on, $vals) = $item;
-                $sqls[] = "{$keyword} {$table} ON {$on}";
+                $quotedTable = $driver->quoteTableName($table);
+                $sqls[] = "{$keyword} {$quotedTable} ON {$on}";
                 array_push($values, ...$vals);
             }
         }
@@ -317,7 +323,8 @@ trait QueryBuilder
 
         // group
         if ($this->group) {
-            $sqls[] = "GROUP BY " . implode(', ', $this->group);
+            $quotedGroup = array_map([$driver, 'quoteColumnName'], $this->group);
+            $sqls[] = "GROUP BY " . implode(', ', $quotedGroup);
         }
 
         // having
@@ -337,14 +344,15 @@ trait QueryBuilder
             $subSql = [];
             foreach ($this->order as $item) {
                 list($field, $order) = $item;
-                $subSql[] = "{$field} {$order}";
+                $quotedField = $driver->quoteColumnName($field);
+                $subSql[] = "{$quotedField} {$order}";
             }
             $sqls[] = "ORDER BY " . implode(', ', $subSql);
         }
 
         // limit and offset
         if ($this->limit > 0) {
-            list($limitSql, $limitValues) = $this->getDriver()->buildLimit($this->offset, $this->limit);
+            list($limitSql, $limitValues) = $driver->buildLimit($this->offset, $this->limit);
             $sqls[] = $limitSql;
             array_push($values, ...$limitValues);
         }
