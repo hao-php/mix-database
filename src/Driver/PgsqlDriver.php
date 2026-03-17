@@ -167,8 +167,6 @@ class PgsqlDriver implements DriverInterface
         if ($this->isQuoted($identifier)) {
             return $identifier;
         }
-        // 转义标识符中的双引号
-        $identifier = str_replace('"', '""', $identifier);
         return "\"{$identifier}\"";
     }
 

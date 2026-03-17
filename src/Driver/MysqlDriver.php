@@ -169,8 +169,6 @@ class MysqlDriver implements DriverInterface
         if ($this->isQuoted($identifier)) {
             return $identifier;
         }
-        // 转义标识符中的反引号
-        $identifier = str_replace('`', '``', $identifier);
         return "`{$identifier}`";
     }
 
