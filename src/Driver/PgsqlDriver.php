@@ -75,14 +75,24 @@ class PgsqlDriver implements DriverInterface
         }
 
         // 处理别名：支持 "table AS alias" 和 "table alias" 两种格式
-        $table = preg_replace('/\s+AS\s+/i', ' AS ', $table);
+        // 使用字符串函数替代正则，性能更好
+        $upperTable = strtoupper($table);
+        $asPos = strpos($upperTable, ' AS ');
+        if ($asPos !== false) {
+            // "table AS alias" 格式
+            $tableName = trim(substr($table, 0, $asPos));
+            $alias = trim(substr($table, $asPos + 4));
+            return $this->quoteIdentifier($tableName) . ' AS ' . $this->quoteIdentifier($alias);
+        }
 
-        // 尝试匹配 "name AS alias" 或 "name alias" 格式
-        if (preg_match('/^(\S+)(?:\s+(AS)\s+|\s+)(\S+)$/i', $table, $matches)) {
-            $tableName = $this->quoteIdentifier($matches[1]);
-            $alias = $this->quoteIdentifier($matches[3]);
-            $asKeyword = isset($matches[2]) && strtoupper($matches[2]) === 'AS' ? ' AS ' : ' ';
-            return $tableName . $asKeyword . $alias;
+        // 检查是否有空格（"table alias" 格式）
+        $spacePos = strpos($table, ' ');
+        if ($spacePos !== false) {
+            $tableName = trim(substr($table, 0, $spacePos));
+            $alias = trim(substr($table, $spacePos + 1));
+            if ($tableName !== '' && $alias !== '') {
+                return $this->quoteIdentifier($tableName) . ' ' . $this->quoteIdentifier($alias);
+            }
         }
 
         // 无别名，直接引号
@@ -96,7 +106,7 @@ class PgsqlDriver implements DriverInterface
      */
     public function quoteColumnName(string $column): string
     {
-        // 检查是否已有引号
+        // 快速返回：已引号的列名直接返回，避免后续检查
         if ($this->isQuoted($column)) {
             return $column;
         }
@@ -106,8 +116,14 @@ class PgsqlDriver implements DriverInterface
             return $column;
         }
 
-        // 如果包含特殊字符（逗号、括号、空格、AS关键字等），则为复杂表达式，不处理
-        if (preg_match('/[,()\s]/', $column) || stripos($column, 'AS ') !== false) {
+        // 如果包含特殊字符（逗号、括号、空格），则为复杂表达式，不处理
+        if (strpbrk($column, ',() ') !== false) {
+            return $column;
+        }
+
+        // 检查是否包含 AS 关键字（大小写不敏感）
+        $upperColumn = strtoupper($column);
+        if (strpos($upperColumn, ' AS ') !== false || strpos($upperColumn, ' AS(') !== false) {
             return $column;
         }
 
@@ -119,12 +135,14 @@ class PgsqlDriver implements DriverInterface
                 if ($part === '*') {
                     $quotedParts[] = $part;
                 } else {
+                    // quoteIdentifier 内部会检查 isQuoted（处理 split 后可能已引号的情况）
                     $quotedParts[] = $this->quoteIdentifier($part);
                 }
             }
             return implode('.', $quotedParts);
         }
 
+        // 简单列名
         return $this->quoteIdentifier($column);
     }
 
@@ -135,7 +153,12 @@ class PgsqlDriver implements DriverInterface
      */
     protected function isQuoted(string $identifier): bool
     {
-        return preg_match('/^"[^"]+"$/', $identifier) === 1;
+        // 使用字符串函数替代正则，性能更好
+        $len = strlen($identifier);
+        return $len >= 2
+            && $identifier[0] === '"'
+            && $identifier[$len - 1] === '"'
+            && strpos($identifier, '"', 1) === $len - 1; // 确保中间没有双引号
     }
 
     /**
