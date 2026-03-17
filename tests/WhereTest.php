@@ -17,7 +17,7 @@ final class WhereTest extends TestCase
             ->where('name = ?', 'test1')
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $sql = "SELECT * FROM users WHERE id = ? AND name = ?";
+                $sql = "SELECT * FROM `users` WHERE id = ? AND name = ?";
                 $_this->assertEquals($log['sql'], $sql);
                 $_this->assertEquals($log['bindings'], [1, 'test1']);
             })
@@ -27,7 +27,7 @@ final class WhereTest extends TestCase
             ->where('id = ? and name = ?', 1, 'test1')
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $sql = "SELECT * FROM users WHERE id = ? and name = ?";
+                $sql = "SELECT * FROM `users` WHERE id = ? and name = ?";
                 $_this->assertEquals($log['sql'], $sql);
                 $_this->assertEquals($log['bindings'], [1, 'test1']);
             })
@@ -43,7 +43,7 @@ final class WhereTest extends TestCase
             ->where('id = ? or id = ?', 1, 2)
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $sql = "SELECT * FROM users WHERE id = ? or id = ?";
+                $sql = "SELECT * FROM `users` WHERE id = ? or id = ?";
                 $_this->assertEquals($log['sql'], $sql);
                 $_this->assertEquals($log['bindings'], [1, 2]);
             })
@@ -60,7 +60,7 @@ final class WhereTest extends TestCase
             ->where('id IN (?) or id IN (?)', [1, 2], [3, 4])
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $sql = "SELECT * FROM users WHERE id IN (1,2) or id IN (3,4)";
+                $sql = "SELECT * FROM `users` WHERE id IN (1,2) or id IN (3,4)";
                 $_this->assertEquals($log['sql'], $sql);
                 $_this->assertEquals($log['bindings'], []);
             })
@@ -71,7 +71,7 @@ final class WhereTest extends TestCase
             ->where('id IN (?) or id = ?', [1, 2], 3)
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $sql = "SELECT * FROM users WHERE id IN (1,2) or id = ?";
+                $sql = "SELECT * FROM `users` WHERE id IN (1,2) or id = ?";
                 $_this->assertEquals($log['sql'], $sql);
                 $_this->assertEquals($log['bindings'], [3]);
             })
@@ -82,7 +82,7 @@ final class WhereTest extends TestCase
             ->where('id = ? or id IN (?)', 3, [1, 2])
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $sql = "SELECT * FROM users WHERE id = ? or id IN (1,2)";
+                $sql = "SELECT * FROM `users` WHERE id = ? or id IN (1,2)";
                 $_this->assertEquals($log['sql'], $sql);
                 $_this->assertEquals($log['bindings'], [3]);
             })

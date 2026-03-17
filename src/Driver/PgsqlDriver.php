@@ -106,10 +106,22 @@ class PgsqlDriver implements DriverInterface
             return $column;
         }
 
-        // 处理 "table.column" 格式
+        // 如果包含特殊字符（逗号、括号、空格、AS关键字等），则为复杂表达式，不处理
+        if (preg_match('/[,()\s]/', $column) || stripos($column, 'AS ') !== false) {
+            return $column;
+        }
+
+        // 处理 "table.column" 或 "table.*" 格式
         if (strpos($column, '.') !== false) {
             $parts = explode('.', $column);
-            $quotedParts = array_map([$this, 'quoteIdentifier'], $parts);
+            $quotedParts = [];
+            foreach ($parts as $part) {
+                if ($part === '*') {
+                    $quotedParts[] = $part;
+                } else {
+                    $quotedParts[] = $this->quoteIdentifier($part);
+                }
+            }
             return implode('.', $quotedParts);
         }
 

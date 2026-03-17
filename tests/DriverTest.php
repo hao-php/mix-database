@@ -129,6 +129,12 @@ final class DriverTest extends TestCase
         $this->assertEquals('`users`.`name`', $driver->quoteColumnName('users.name'));
         $this->assertEquals('`name`', $driver->quoteColumnName('`name`'));
         $this->assertEquals('*', $driver->quoteColumnName('*'));
+        // 复杂表达式不处理
+        $this->assertEquals('count(*) as mix_count', $driver->quoteColumnName('count(*) as mix_count'));
+        $this->assertEquals('n.*, u.name', $driver->quoteColumnName('n.*, u.name'));
+        $this->assertEquals('uid, COUNT(*) AS total', $driver->quoteColumnName('uid, COUNT(*) AS total'));
+        // table.* 格式
+        $this->assertEquals('`n`.*', $driver->quoteColumnName('n.*'));
     }
 
     // ==================== PgsqlDriver 引号处理测试 ====================
@@ -155,6 +161,12 @@ final class DriverTest extends TestCase
         $this->assertEquals('"users"."name"', $driver->quoteColumnName('users.name'));
         $this->assertEquals('"name"', $driver->quoteColumnName('"name"'));
         $this->assertEquals('*', $driver->quoteColumnName('*'));
+        // 复杂表达式不处理
+        $this->assertEquals('count(*) as mix_count', $driver->quoteColumnName('count(*) as mix_count'));
+        $this->assertEquals('n.*, u.name', $driver->quoteColumnName('n.*, u.name'));
+        $this->assertEquals('uid, COUNT(*) AS total', $driver->quoteColumnName('uid, COUNT(*) AS total'));
+        // table.* 格式
+        $this->assertEquals('"n".*', $driver->quoteColumnName('n.*'));
     }
 
     // ==================== MysqlDriver 特有方法测试 ====================
