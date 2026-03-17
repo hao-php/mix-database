@@ -147,18 +147,13 @@ class PgsqlDriver implements DriverInterface
     }
 
     /**
-     * 检查标识符是否已被引号
+     * 检查标识符是否已被引号（只要包含引号就认为已处理）
      * @param string $identifier
      * @return bool
      */
     protected function isQuoted(string $identifier): bool
     {
-        // 使用字符串函数替代正则，性能更好
-        $len = strlen($identifier);
-        return $len >= 2
-            && $identifier[0] === '"'
-            && $identifier[$len - 1] === '"'
-            && strpos($identifier, '"', 1) === $len - 1; // 确保中间没有双引号
+        return strpos($identifier, '"') !== false;
     }
 
     /**
