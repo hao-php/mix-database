@@ -57,4 +57,10 @@ interface DriverInterface
      */
     public function quoteColumnName(string $column): string;
 
+    /**
+     * 设置是否对标识符加引号
+     * @param bool $enabled 是否启用引号
+     */
+    public function setQuoteIdentifiers(bool $enabled): void;
+
 }

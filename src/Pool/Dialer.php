@@ -37,18 +37,26 @@ class Dialer implements DialerInterface
     protected $options = [];
 
     /**
+     * 是否对标识符加引号
+     * @var bool
+     */
+    protected $quoteIdentifiers = false;
+
+    /**
      * Dialer constructor.
      * @param string $dsn
      * @param string $username
      * @param string $password
      * @param array $options
+     * @param bool $quoteIdentifiers
      */
-    public function __construct(string $dsn, string $username, string $password, array $options = [])
+    public function __construct(string $dsn, string $username, string $password, array $options = [], bool $quoteIdentifiers = false)
     {
         $this->dsn = $dsn;
         $this->username = $username;
         $this->password = $password;
         $this->options = $options;
+        $this->quoteIdentifiers = $quoteIdentifiers;
     }
 
     /**
@@ -61,7 +69,8 @@ class Dialer implements DialerInterface
             $this->dsn,
             $this->username,
             $this->password,
-            $this->options
+            $this->options,
+            $this->quoteIdentifiers
         );
     }
 

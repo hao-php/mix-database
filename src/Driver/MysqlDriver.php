@@ -9,6 +9,21 @@ class MysqlDriver implements DriverInterface
 {
 
     /**
+     * 是否对标识符加引号
+     * @var bool
+     */
+    protected $quoteIdentifiers = false;
+
+    /**
+     * 设置是否对标识符加引号
+     * @param bool $enabled
+     */
+    public function setQuoteIdentifiers(bool $enabled): void
+    {
+        $this->quoteIdentifiers = $enabled;
+    }
+
+    /**
      * MySQL LIMIT 语法: LIMIT offset, count
      * @param int $offset
      * @param int $limit
@@ -71,6 +86,11 @@ class MysqlDriver implements DriverInterface
      */
     public function quoteTableName(string $table): string
     {
+        // 未启用引号功能时直接返回
+        if (!$this->quoteIdentifiers) {
+            return $table;
+        }
+
         // 检查是否已有引号
         if ($this->isQuoted($table)) {
             return $table;
@@ -108,6 +128,11 @@ class MysqlDriver implements DriverInterface
      */
     public function quoteColumnName(string $column): string
     {
+        // 未启用引号功能时直接返回
+        if (!$this->quoteIdentifiers) {
+            return $column;
+        }
+
         // 快速返回：已引号的列名直接返回，避免后续检查
         if ($this->isQuoted($column)) {
             return $column;

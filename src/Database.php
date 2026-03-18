@@ -39,6 +39,12 @@ class Database
     protected $options = [];
 
     /**
+     * 是否对标识符（表名、列名）加引号
+     * @var bool
+     */
+    protected $quoteIdentifiers = false;
+
+    /**
      * 最大活跃数
      * "0" 为不限制，"-1" 等于cpu数量
      * @var int
@@ -88,19 +94,22 @@ class Database
      * @param string $username
      * @param string $password
      * @param array $options
+     * @param bool $quoteIdentifiers 是否对标识符（表名、列名）加引号，默认关闭
      */
-    public function __construct(string $dsn, string $username, string $password, array $options = [])
+    public function __construct(string $dsn, string $username, string $password, array $options = [], bool $quoteIdentifiers = false)
     {
         $this->dsn = $dsn;
         $this->username = $username;
         $this->password = $password;
         $this->options = $options;
+        $this->quoteIdentifiers = $quoteIdentifiers;
 
         $this->connector = new Connector(
             $this->dsn,
             $this->username,
             $this->password,
-            $this->options
+            $this->options,
+            $this->quoteIdentifiers
         );
     }
 
@@ -116,7 +125,8 @@ class Database
                 $this->dsn,
                 $this->username,
                 $this->password,
-                $this->options
+                $this->options,
+                $this->quoteIdentifiers
             ),
             $this->maxOpen,
             $this->maxIdle,
