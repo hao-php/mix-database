@@ -86,6 +86,12 @@ abstract class Model
 
     protected array $lastQueryLog = [];
 
+    /**
+     * 实例是否处于干净状态（未修改或已重置）
+     * @var bool
+     */
+    protected bool $isClean = true;
+
     public function __construct()
     {
         $this->table = static::$tableName;
@@ -165,6 +171,16 @@ abstract class Model
         $this->joins = [];
         $this->leftJoins = [];
         $this->debug = null;
+        $this->isClean = true;
+    }
+
+    /**
+     * 判断实例是否处于干净状态
+     * @return bool
+     */
+    public function isClean(): bool
+    {
+        return $this->isClean;
     }
 
     protected function buildWhere(...$where): array
@@ -349,6 +365,7 @@ abstract class Model
     public function alias(string $alias)
     {
         $this->alias = $alias;
+        $this->isClean = false;
         return $this;
     }
 
@@ -371,12 +388,14 @@ abstract class Model
         }
         list($string, $values) = $this->buildWhere(...$where);
         $this->wheres[] = [$string, $values];
+        $this->isClean = false;
         return $this;
     }
 
     public function whereRaw(string $whereString, ...$values)
     {
         $this->wheres[] = [$whereString, $values];
+        $this->isClean = false;
         return $this;
     }
 
@@ -387,18 +406,21 @@ abstract class Model
         }
         list($string, $values) = $this->buildWhere(...$where);
         $this->ors[] = [$string, $values];
+        $this->isClean = false;
         return $this;
     }
 
     public function offset(int $offset)
     {
         $this->offset = $offset;
+        $this->isClean = false;
         return $this;
     }
 
     public function limit(int $limit)
     {
         $this->limit = $limit;
+        $this->isClean = false;
         return $this;
     }
 
@@ -406,6 +428,7 @@ abstract class Model
     {
         $this->offset = ($page - 1) * $limit;
         $this->limit = $limit;
+        $this->isClean = false;
         return $this;
     }
 
@@ -429,6 +452,7 @@ abstract class Model
     {
         // $fields = $this->buildField($fields);
         $this->fields = $fields;
+        $this->isClean = false;
         return $this;
     }
 
@@ -439,36 +463,42 @@ abstract class Model
         }
         list($string, $values) = $this->buildWhere(...$where);
         $this->havings[] = [$string, $values];
+        $this->isClean = false;
         return $this;
     }
 
     public function havingRaw(string $expr, ...$values)
     {
         $this->havings[] = [$expr, $values];
+        $this->isClean = false;
         return $this;
     }
 
     public function group(string ...$fields)
     {
         $this->group = $fields;
+        $this->isClean = false;
         return $this;
     }
 
     public function order(string $field, string $order)
     {
         $this->orders[] = [$field, $order];
+        $this->isClean = false;
         return $this;
     }
 
     public function join(string $table, string $on, ...$values)
     {
         $this->joins[] = [$table, $on, $values];
+        $this->isClean = false;
         return $this;
     }
 
     public function leftJoin(string $table, string $on, ...$values)
     {
         $this->leftJoins[] = [$table, $on, $values];
+        $this->isClean = false;
         return $this;
     }
 
@@ -612,6 +642,7 @@ abstract class Model
     public function debug(\Closure $debug)
     {
         $this->debug = $debug;
+        $this->isClean = false;
         return $this;
     }
 
