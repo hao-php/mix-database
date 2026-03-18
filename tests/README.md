@@ -120,6 +120,10 @@ vendor/bin/phpunit --log-junit tests/junit.xml
 
   - 打开 `tests/junit.xml`，每个 `<testcase>` 节点的 `time` 属性就是该用例的耗时，可按时间排序找到最慢的测试。
 
+### 测试用例列表
+
+详见 [TEST_CASES.md](TEST_CASES.md)。
+
 ### 关于 PoolTest
 
 - `PoolTest.php` 依赖 Swoole 协程环境。

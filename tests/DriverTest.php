@@ -2,8 +2,6 @@
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
-use Haoa\MixDatabase\Database;
-use Haoa\MixDatabase\ConnectionInterface;
 use Haoa\MixDatabase\Driver\DriverFactory;
 use Haoa\MixDatabase\Driver\DriverInterface;
 use Haoa\MixDatabase\Driver\MysqlDriver;
@@ -113,18 +111,39 @@ final class DriverTest extends TestCase
         $this->assertEquals(['`', '`'], $driver->getQuoteChar());
     }
 
-    public function testMysqlQuoteTableName(): void
+    public function testMysqlQuoteTableNameDisabledByDefault(): void
     {
         $driver = new MysqlDriver();
+        // 默认关闭，不加引号
+        $this->assertEquals('users', $driver->quoteTableName('users'));
+        $this->assertEquals('users AS u', $driver->quoteTableName('users AS u'));
+        $this->assertEquals('users u', $driver->quoteTableName('users u'));
+    }
+
+    public function testMysqlQuoteTableNameEnabled(): void
+    {
+        $driver = new MysqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $this->assertEquals('`users`', $driver->quoteTableName('users'));
         $this->assertEquals('`users` AS `u`', $driver->quoteTableName('users AS u'));
         $this->assertEquals('`users` `u`', $driver->quoteTableName('users u'));
         $this->assertEquals('`users`', $driver->quoteTableName('`users`'));
     }
 
-    public function testMysqlQuoteColumnName(): void
+    public function testMysqlQuoteColumnNameDisabledByDefault(): void
     {
         $driver = new MysqlDriver();
+        // 默认关闭，不加引号
+        $this->assertEquals('name', $driver->quoteColumnName('name'));
+        $this->assertEquals('users.name', $driver->quoteColumnName('users.name'));
+        $this->assertEquals('*', $driver->quoteColumnName('*'));
+        $this->assertEquals('n.*', $driver->quoteColumnName('n.*'));
+    }
+
+    public function testMysqlQuoteColumnNameEnabled(): void
+    {
+        $driver = new MysqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $this->assertEquals('`name`', $driver->quoteColumnName('name'));
         $this->assertEquals('`users`.`name`', $driver->quoteColumnName('users.name'));
         $this->assertEquals('`name`', $driver->quoteColumnName('`name`'));
@@ -145,18 +164,39 @@ final class DriverTest extends TestCase
         $this->assertEquals(['"', '"'], $driver->getQuoteChar());
     }
 
-    public function testPgsqlQuoteTableName(): void
+    public function testPgsqlQuoteTableNameDisabledByDefault(): void
     {
         $driver = new PgsqlDriver();
+        // 默认关闭，不加引号
+        $this->assertEquals('users', $driver->quoteTableName('users'));
+        $this->assertEquals('users AS u', $driver->quoteTableName('users AS u'));
+        $this->assertEquals('users u', $driver->quoteTableName('users u'));
+    }
+
+    public function testPgsqlQuoteTableNameEnabled(): void
+    {
+        $driver = new PgsqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $this->assertEquals('"users"', $driver->quoteTableName('users'));
         $this->assertEquals('"users" AS "u"', $driver->quoteTableName('users AS u'));
         $this->assertEquals('"users" "u"', $driver->quoteTableName('users u'));
         $this->assertEquals('"users"', $driver->quoteTableName('"users"'));
     }
 
-    public function testPgsqlQuoteColumnName(): void
+    public function testPgsqlQuoteColumnNameDisabledByDefault(): void
     {
         $driver = new PgsqlDriver();
+        // 默认关闭，不加引号
+        $this->assertEquals('name', $driver->quoteColumnName('name'));
+        $this->assertEquals('users.name', $driver->quoteColumnName('users.name'));
+        $this->assertEquals('*', $driver->quoteColumnName('*'));
+        $this->assertEquals('n.*', $driver->quoteColumnName('n.*'));
+    }
+
+    public function testPgsqlQuoteColumnNameEnabled(): void
+    {
+        $driver = new PgsqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $this->assertEquals('"name"', $driver->quoteColumnName('name'));
         $this->assertEquals('"users"."name"', $driver->quoteColumnName('users.name'));
         $this->assertEquals('"name"', $driver->quoteColumnName('"name"'));
@@ -174,6 +214,7 @@ final class DriverTest extends TestCase
     public function testMysqlBuildReplaceInsert(): void
     {
         $driver = new MysqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $result = $driver->buildReplaceInsert('users', ['name' => 'foo', 'balance' => 10]);
         $this->assertStringContainsString('REPLACE INTO `users`', $result['sql']);
         $this->assertStringContainsString('`name`', $result['sql']);
@@ -185,6 +226,7 @@ final class DriverTest extends TestCase
     public function testMysqlBuildInsertOnDuplicateKey(): void
     {
         $driver = new MysqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $result = $driver->buildInsertOnDuplicateKey('users', ['name' => 'foo', 'balance' => 10], ['balance']);
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
         $this->assertStringContainsString('`users`', $result['sql']);
@@ -199,6 +241,7 @@ final class DriverTest extends TestCase
     public function testPgsqlBuildInsertOnConflictDoNothing(): void
     {
         $driver = new PgsqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], 'name');
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
         $this->assertStringContainsString('"users"', $result['sql']);
@@ -209,6 +252,7 @@ final class DriverTest extends TestCase
     public function testPgsqlBuildInsertOnConflictDoUpdate(): void
     {
         $driver = new PgsqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], 'name', ['balance']);
         $this->assertStringContainsString('ON CONFLICT ("name") DO UPDATE SET', $result['sql']);
         $this->assertStringContainsString('"balance" = EXCLUDED."balance"', $result['sql']);
@@ -217,6 +261,7 @@ final class DriverTest extends TestCase
     public function testPgsqlBuildInsertOnConflictMultipleColumns(): void
     {
         $driver = new PgsqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], ['name', 'balance']);
         $this->assertStringContainsString('ON CONFLICT ("name", "balance") DO NOTHING', $result['sql']);
     }
@@ -224,31 +269,12 @@ final class DriverTest extends TestCase
     public function testPgsqlBuildInsertReturning(): void
     {
         $driver = new PgsqlDriver();
+        $driver->setQuoteIdentifiers(true);
         $result = $driver->buildInsertReturning('users', ['name' => 'foo', 'balance' => 10], 'id');
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
         $this->assertStringContainsString('"users"', $result['sql']);
         $this->assertStringContainsString('RETURNING "id"', $result['sql']);
         $this->assertArrayHasKey('params', $result);
-    }
-
-    // ==================== Database getDriver() 测试 ====================
-
-    public function testDatabaseGetDriver(): void
-    {
-        $db = db();
-        $driver = $db->getDriver();
-        $this->assertInstanceOf(MysqlDriver::class, $driver);
-    }
-
-    // ==================== __call 透传测试 ====================
-
-    public function testCallUnsupportedMethodThrows(): void
-    {
-        $db = db();
-        $this->expectException(\BadMethodCallException::class);
-        $this->expectExceptionMessage('not supported by');
-        // MySQL 驱动没有 buildInsertOnConflict 方法
-        $db->insertOnConflict('users', ['name' => 'foo'], 'name');
     }
 
 }

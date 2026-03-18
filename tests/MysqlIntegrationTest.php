@@ -33,7 +33,7 @@ final class MysqlIntegrationTest extends TestCase
         $_this = $this;
         $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
-            $_this->assertStringContainsString('SELECT `id`, `name`', $log['sql']);
+            $_this->assertStringContainsString('SELECT id, name', $log['sql']);
         })->table('users')->select('id', 'name')->where('id = ?', 1)->get();
     }
 
@@ -72,9 +72,9 @@ final class MysqlIntegrationTest extends TestCase
         $_this = $this;
         $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
-            $_this->assertStringContainsString('INSERT INTO `users`', $log['sql']);
-            $_this->assertStringContainsString('`name`', $log['sql']);
-            $_this->assertStringContainsString('`balance`', $log['sql']);
+            $_this->assertStringContainsString('INSERT INTO users', $log['sql']);
+            $_this->assertStringContainsString('name', $log['sql']);
+            $_this->assertStringContainsString('balance', $log['sql']);
         })->insert('users', ['name' => 'quote_test', 'balance' => 0]);
     }
 
