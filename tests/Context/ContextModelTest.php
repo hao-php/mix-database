@@ -12,7 +12,7 @@ final class ContextModelTest extends ContextTestCase
     /** 创建一个绑定了 Context\Database 的测试模型 */
     private function createModel(): ContextTestUserModel
     {
-        return ContextTestUserModel::newInstance($this->db);
+        return ContextTestUserModel::db($this->db);
     }
 
     /** where 条件与 getLastSql 生成的 SQL 片段校验 */

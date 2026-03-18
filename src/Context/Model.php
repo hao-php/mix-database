@@ -323,12 +323,17 @@ abstract class Model
      * @param Database|TransactionWrapper|null $readDatabase
      * @return static
      */
-    public static function newInstance(Database|TransactionWrapper $db, Database|TransactionWrapper $readDatabase = null): static
+    public static function db(Database|TransactionWrapper $db, Database|TransactionWrapper $readDatabase = null): static
     {
         $obj = new static();
         $obj->database = $db;
         $obj->readDatabase = $readDatabase;
         return $obj;
+    }
+
+    public static function make(): static
+    {
+        return new static();
     }
 
     public function getTable()
