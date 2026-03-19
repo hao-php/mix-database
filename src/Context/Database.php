@@ -34,28 +34,23 @@ class Database
      */
     public function beginTransaction(): TransactionWrapper
     {
-        $ctx = self::getContext();
+        $key = self::RUN_CONTEXT_TX_KEY . $this->getObjectHash();
         /** @var TransactionWrapper $obj */
-        $obj = $ctx->get(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash());
+        $obj = RunContext::get($key);
         if (empty($obj)) {
             $tx = $this->db->beginTransaction();
             $obj = new TransactionWrapper($tx, $this);
             $obj->incrementNestingLevel();
-            $ctx->set(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash(), $obj);
+            RunContext::set($key, $obj);
         } else {
             $obj->incrementNestingLevel();
         }
         return $obj;
     }
 
-    public static function getContext(): \Haoa\Util\Context\BaseContext
-    {
-        return RunContext::getHandler();
-    }
-
     public function delContextTx()
     {
-        self::getContext()->delete(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash());
+        RunContext::delete(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash());
     }
 
     /**
@@ -63,7 +58,7 @@ class Database
      */
     public function getContextTx()
     {
-        return self::getContext()->get(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash());
+        return RunContext::get(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash());
     }
 
 
