@@ -3,6 +3,7 @@
 namespace Haoa\MixDatabase\Context;
 
 use Haoa\MixDatabase\ConnectionInterface;
+use Haoa\Util\Context\RunContext;
 
 /**
  *
@@ -300,7 +301,7 @@ abstract class Model
         $table = $this->buildTableWithAlias();
 
         //  如果在事务中, 则使用事务对象
-        $transaction = Database::getContext()->get(
+        $transaction = RunContext::get(
             Database::RUN_CONTEXT_TX_KEY . $this->database->getObjectHash()
         );
         if ($transaction !== null) {
@@ -313,26 +314,6 @@ abstract class Model
 
         return $connection->table($table);
     }
-
-//    public function setDatabase(Database|TransactionWrapper $db): self
-//    {
-//        if ($this->database != null) {
-//            $transaction = Database::getContext()->get(
-//                Database::RUN_CONTEXT_TX_KEY . $this->database->getObjectHash()
-//            );
-//            if ($transaction !== null) {
-//                throw new \LogicException('Cannot change database connection while in transaction');
-//            }
-//        }
-//        $this->database = $db;
-//        return $this;
-//    }
-//
-//    public function setReadDatabase(Database $db): self
-//    {
-//        $this->readDatabase = $db;
-//        return $this;
-//    }
 
     /**
      * @param Database|TransactionWrapper $db

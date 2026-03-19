@@ -6,6 +6,7 @@ require_once __DIR__ . '/ContextTestCase.php';
 use Haoa\MixDatabase\ConnectionInterface;
 use Haoa\MixDatabase\Context\Database;
 use Haoa\MixDatabase\Context\TransactionWrapper;
+use Haoa\Util\Context\RunContext;
 
 final class ContextDatabaseTest extends ContextTestCase
 {
@@ -299,13 +300,6 @@ final class ContextDatabaseTest extends ContextTestCase
             $tx2->rollback();
             throw $e;
         }
-    }
-
-    /** 能够正常获取到运行上下文对象 */
-    public function testGetContext(): void
-    {
-        $context = Database::getContext();
-        $this->assertNotNull($context);
     }
 
     /** 在 TransactionWrapper 中使用 exec/raw 执行 SQL */
