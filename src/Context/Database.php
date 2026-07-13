@@ -24,9 +24,9 @@ class Database
 
     public const RUN_CONTEXT_TX_KEY =  __CLASS__ . ':obj_transaction:';
 
-    public function __construct(string $dsn, string $username, string $password, array $options = [])
+    public function __construct(string $dsn, string $username, string $password, array $options = [], bool $quoteIdentifiers = false)
     {
-        $this->db = new BaseDatabase($dsn, $username, $password, $options);
+        $this->db = new BaseDatabase($dsn, $username, $password, $options, $quoteIdentifiers);
     }
 
     /**
