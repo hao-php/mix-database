@@ -141,6 +141,10 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     protected function isDisconnectException(\Throwable $ex)
     {
+        if (!$ex instanceof \PDOException) {
+            return false;
+        }
+
         $disconnectMessages = $this->getDriver()->disconnectMessages();
         $errorMessage = $ex->getMessage();
         foreach ($disconnectMessages as $message) {
