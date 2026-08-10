@@ -16,6 +16,7 @@ use Haoa\Util\Context\RunContext;
  * @method array poolStats()
  * @method setLogger(LoggerInterface $logger)
  * @method ConnectionInterface debug(\Closure $func)
+ * @method ConnectionInterface createTableLike(string $baseTable, string $table)
  */
 class Database
 {
