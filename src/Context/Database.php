@@ -17,6 +17,7 @@ use Haoa\Util\Context\RunContext;
  * @method setLogger(LoggerInterface $logger)
  * @method ConnectionInterface debug(\Closure $func)
  * @method ConnectionInterface createTableLike(string $baseTable, string $table)
+ * @method bool tableExists(string $table)
  */
 class Database
 {

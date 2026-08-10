@@ -47,6 +47,19 @@ class MysqlDriver implements DriverInterface
     }
 
     /**
+     * @param string $table
+     * @return array
+     */
+    public function buildTableExistsSql(string $table): array
+    {
+        $sql = 'SELECT EXISTS('
+            . 'SELECT 1 FROM information_schema.tables '
+            . 'WHERE table_schema = DATABASE() AND table_name = ?'
+            . ') AS table_exists';
+        return [$sql, [$table]];
+    }
+
+    /**
      * @return string
      */
     public function sharedLockSql(): string

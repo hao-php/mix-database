@@ -47,6 +47,18 @@ class PgsqlDriver implements DriverInterface
     }
 
     /**
+     * @param string $table
+     * @return array
+     */
+    public function buildTableExistsSql(string $table): array
+    {
+        return [
+            'SELECT CASE WHEN to_regclass(?) IS NULL THEN 0 ELSE 1 END AS table_exists',
+            [$table],
+        ];
+    }
+
+    /**
      * @return string
      */
     public function sharedLockSql(): string

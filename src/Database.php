@@ -242,6 +242,22 @@ class Database
     }
 
     /**
+     * 判断数据表是否存在
+     * @param string $table 表名
+     * @return bool
+     */
+    public function tableExists(string $table): bool
+    {
+        $table = trim($table);
+        if ($table === '' || !preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            throw new \InvalidArgumentException('Invalid table name: ' . $table);
+        }
+
+        list($sql, $values) = $this->getDriver()->buildTableExistsSql($table);
+        return (bool) $this->raw($sql, ...$values)->value('table_exists');
+    }
+
+    /**
      * Borrow connection
      * @return Connection
      * @throws WaitTimeoutException

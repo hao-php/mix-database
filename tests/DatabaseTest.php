@@ -44,6 +44,22 @@ final class DatabaseTest extends TestCase
         $this->assertStringNotContainsString(MYSQL_PASSWORD, $identifier);
     }
 
+    public function testTableExists(): void
+    {
+        $db = db();
+
+        $this->assertTrue($db->tableExists('users'));
+        $this->assertFalse($db->tableExists('table_that_does_not_exist'));
+    }
+
+    public function testTableExistsRejectsInvalidTableName(): void
+    {
+        $db = db();
+        $this->expectException(\InvalidArgumentException::class);
+
+        $db->tableExists('users; DROP TABLE users');
+    }
+
     public function testCallUnsupportedMethodThrows(): void
     {
         $db = db();

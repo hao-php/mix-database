@@ -26,6 +26,13 @@ interface DriverInterface
     public function buildCreateTableLikeSql(string $baseTable, string $table): string;
 
     /**
+     * 构建判断数据表是否存在的查询
+     * @param string $table 表名
+     * @return array [sql, values]
+     */
+    public function buildTableExistsSql(string $table): array;
+
+    /**
      * 共享锁语法
      * MySQL: LOCK IN SHARE MODE  PgSQL: FOR SHARE
      * @return string

@@ -62,6 +62,18 @@ final class DriverTest extends TestCase
         );
     }
 
+    public function testMysqlBuildTableExistsSql(): void
+    {
+        $driver = new MysqlDriver();
+        list($sql, $values) = $driver->buildTableExistsSql('runtime_log_20260810');
+
+        $this->assertEquals(
+            'SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?) AS table_exists',
+            $sql
+        );
+        $this->assertEquals(['runtime_log_20260810'], $values);
+    }
+
     public function testMysqlSharedLock(): void
     {
         $driver = new MysqlDriver();
@@ -101,6 +113,18 @@ final class DriverTest extends TestCase
             'CREATE TABLE IF NOT EXISTS "runtime_log_2026_08_10" (LIKE "runtime_log" INCLUDING ALL)',
             $sql
         );
+    }
+
+    public function testPgsqlBuildTableExistsSql(): void
+    {
+        $driver = new PgsqlDriver();
+        list($sql, $values) = $driver->buildTableExistsSql('runtime_log_20260810');
+
+        $this->assertEquals(
+            'SELECT CASE WHEN to_regclass(?) IS NULL THEN 0 ELSE 1 END AS table_exists',
+            $sql
+        );
+        $this->assertEquals(['runtime_log_20260810'], $values);
     }
 
     public function testPgsqlSharedLock(): void
