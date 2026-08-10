@@ -180,6 +180,39 @@ abstract class AbstractConnection implements ConnectionInterface
     }
 
     /**
+     * 按基础表结构创建新表
+     * @param string $baseTable
+     * @param string $table
+     * @return ConnectionInterface
+     */
+    public function createTableLike(string $baseTable, string $table): ConnectionInterface
+    {
+        $baseTable = $this->validateTableName($baseTable);
+        $table = $this->validateTableName($table);
+        if ($baseTable === $table) {
+            throw new \InvalidArgumentException('baseTable and table cannot be the same');
+        }
+        $driver = $this->getDriver();
+        $sql = $driver->buildCreateTableLikeSql($baseTable, $table);
+        return $this->exec($sql);
+    }
+
+    /**
+     * 校验表名合法性
+     * @param string $table
+     * @return string
+     * @throws \InvalidArgumentException
+     */
+    private function validateTableName(string $table): string
+    {
+        $table = trim($table);
+        if ($table === '' || !preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            throw new \InvalidArgumentException('Invalid table name: ' . $table);
+        }
+        return $table;
+    }
+
+    /**
      * @return ConnectionInterface
      * @throws \Throwable
      */
