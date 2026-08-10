@@ -113,6 +113,15 @@ class Database
         );
     }
 
+    /**
+     * 获取不包含账号密码的数据库连接标识
+     * @return string
+     */
+    public function getConnectionIdentifier(): string
+    {
+        return hash('sha256', $this->dsn);
+    }
+
     protected function createPool()
     {
         if ($this->connector) {
