@@ -52,6 +52,16 @@ final class DriverTest extends TestCase
         $this->assertEquals([10, 5], $values);
     }
 
+    public function testMysqlBuildCreateTableLikeSql(): void
+    {
+        $driver = new MysqlDriver();
+        $sql = $driver->buildCreateTableLikeSql('runtime_log', 'runtime_log_2026_08_10');
+        $this->assertEquals(
+            'CREATE TABLE IF NOT EXISTS `runtime_log_2026_08_10` LIKE `runtime_log`',
+            $sql
+        );
+    }
+
     public function testMysqlSharedLock(): void
     {
         $driver = new MysqlDriver();
@@ -81,6 +91,16 @@ final class DriverTest extends TestCase
         $this->assertEquals('LIMIT ? OFFSET ?', $sql);
         // PgSQL: LIMIT count OFFSET offset
         $this->assertEquals([5, 10], $values);
+    }
+
+    public function testPgsqlBuildCreateTableLikeSql(): void
+    {
+        $driver = new PgsqlDriver();
+        $sql = $driver->buildCreateTableLikeSql('runtime_log', 'runtime_log_2026_08_10');
+        $this->assertEquals(
+            'CREATE TABLE IF NOT EXISTS "runtime_log_2026_08_10" (LIKE "runtime_log" INCLUDING ALL)',
+            $sql
+        );
     }
 
     public function testPgsqlSharedLock(): void

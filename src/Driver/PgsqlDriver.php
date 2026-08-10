@@ -35,6 +35,18 @@ class PgsqlDriver implements DriverInterface
     }
 
     /**
+     * @param string $baseTable
+     * @param string $table
+     * @return string
+     */
+    public function buildCreateTableLikeSql(string $baseTable, string $table): string
+    {
+        $quotedBaseTable = $this->quoteIdentifier($baseTable);
+        $quotedTable = $this->quoteIdentifier($table);
+        return "CREATE TABLE IF NOT EXISTS {$quotedTable} (LIKE {$quotedBaseTable} INCLUDING ALL)";
+    }
+
+    /**
      * @return string
      */
     public function sharedLockSql(): string

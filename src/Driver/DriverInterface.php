@@ -18,6 +18,14 @@ interface DriverInterface
     public function buildLimit(int $offset, int $limit): array;
 
     /**
+     * 按基础表结构构建建表语句
+     * @param string $baseTable 基础表
+     * @param string $table 目标表
+     * @return string
+     */
+    public function buildCreateTableLikeSql(string $baseTable, string $table): string;
+
+    /**
      * 共享锁语法
      * MySQL: LOCK IN SHARE MODE  PgSQL: FOR SHARE
      * @return string
