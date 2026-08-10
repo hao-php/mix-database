@@ -17,6 +17,11 @@ final class ContextDatabaseTest extends ContextTestCase
         $this->assertInstanceOf(Database::class, $this->db);
     }
 
+    public function testGetConnectionIdentifier(): void
+    {
+        $this->assertSame(hash('sha256', MYSQL_DSN), $this->db->getConnectionIdentifier());
+    }
+
     public function testBeginTransaction(): void
     {
         $tx = $this->db->beginTransaction();
@@ -342,4 +347,3 @@ final class ContextDatabaseTest extends ContextTestCase
         }
     }
 }
-

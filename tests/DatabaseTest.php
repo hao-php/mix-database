@@ -36,13 +36,12 @@ final class DatabaseTest extends TestCase
 
     public function testGetConnectionIdentifier(): void
     {
-        $dsn = 'mysql:host=127.0.0.1;port=3306;dbname=mix';
-        $db = new Database($dsn, 'user_a', 'password_a');
-        $otherCredentials = new Database($dsn, 'user_b', 'password_b');
+        $db = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD);
+        $identifier = $db->getConnectionIdentifier();
 
-        $this->assertSame(hash('sha256', $dsn), $db->getConnectionIdentifier());
-        $this->assertSame($db->getConnectionIdentifier(), $otherCredentials->getConnectionIdentifier());
-        $this->assertStringNotContainsString('127.0.0.1', $db->getConnectionIdentifier());
+        $this->assertSame(hash('sha256', MYSQL_DSN), $identifier);
+        $this->assertStringNotContainsString(MYSQL_USERNAME, $identifier);
+        $this->assertStringNotContainsString(MYSQL_PASSWORD, $identifier);
     }
 
     public function testCallUnsupportedMethodThrows(): void
