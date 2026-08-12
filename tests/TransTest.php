@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 final class TransTest extends TestCase
 {
 
-    // 没有pool，因为复用连接，lastInsertId, rowCount 值为第一个查询的值
+    /** 无连接池时连续写操作应返回各自的 lastInsertId 和 rowCount */
     public function testLastInsertIdRowCount(): void
     {
         $db = db();
@@ -39,7 +39,7 @@ final class TransTest extends TestCase
         $this->assertNotEquals($count1, $count2);
     }
 
-    // 有pool，因为复用连接，lastInsertId, rowCount 值为第一个查询的值
+    /** 使用连接池时连续写操作应返回各自的 lastInsertId 和 rowCount */
     public function testPoolLastInsertIdRowCount(): void
     {
         // 有pool + 非事务
@@ -78,7 +78,7 @@ final class TransTest extends TestCase
         });
     }
 
-    // 事务内，因为复用连接，上一个查询的 bind params 残留到下一个查询中执行的问题
+    /** 事务内复用连接时前一条语句的绑定参数不应残留到下一条语句 */
     public function testBindParams(): void
     {
         $db = db();
@@ -104,7 +104,7 @@ final class TransTest extends TestCase
         }
     }
 
-    // 事务异常
+    /** 事务中发生异常后应能正常回滚 */
     public function testRollback(): void
     {
         $db = db();
@@ -124,7 +124,7 @@ final class TransTest extends TestCase
         }
     }
 
-    // 自动事务
+    /** transaction 回调应自动管理事务并执行写入 */
     public function testAuto(): void
     {
         $_this = $this;
@@ -140,7 +140,7 @@ final class TransTest extends TestCase
         });
     }
 
-    // commit 后数据应持久化到数据库
+    /** commit 后事务内插入的数据应持久化 */
     public function testCommitPersistsData(): void
     {
         $db = db();
@@ -159,7 +159,7 @@ final class TransTest extends TestCase
         $this->assertEquals($before + 1, $after);
     }
 
-    // rollback 后数据不应持久化到数据库
+    /** rollback 后事务内插入的数据不应持久化 */
     public function testRollbackDoesNotPersistData(): void
     {
         $db = db();

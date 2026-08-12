@@ -12,6 +12,7 @@ final class MysqlIntegrationTest extends TestCase
 
     // ==================== Select 补充 ====================
 
+    /** 使用 first 获取符合条件的首行记录 */
     public function testSelectFirst(): void
     {
         $db = db();
@@ -20,6 +21,7 @@ final class MysqlIntegrationTest extends TestCase
         $this->assertEquals(1, $row->id);
     }
 
+    /** 使用 value 获取单个字段值 */
     public function testSelectValue(): void
     {
         $db = db();
@@ -27,6 +29,7 @@ final class MysqlIntegrationTest extends TestCase
         $this->assertIsString($name);
     }
 
+    /** 指定查询字段时应生成对应的 SELECT 字段列表 */
     public function testSelectWithFields(): void
     {
         $db = db();
@@ -39,6 +42,7 @@ final class MysqlIntegrationTest extends TestCase
 
     // ==================== MySQL 特有方法 (__call 透传) ====================
 
+    /** MySQL replaceInsert 方法应能通过 Database 正常调用 */
     public function testReplaceInsert(): void
     {
         $db = db();
@@ -46,6 +50,7 @@ final class MysqlIntegrationTest extends TestCase
         $this->assertTrue(true);
     }
 
+    /** MySQL 重复主键写入时应按 ON DUPLICATE KEY 更新记录 */
     public function testInsertOnDuplicateKey(): void
     {
         $db = db();
@@ -57,6 +62,7 @@ final class MysqlIntegrationTest extends TestCase
         $this->assertEquals(20, $balance);
     }
 
+    /** MySQL 驱动调用 PostgreSQL 专属方法时应抛出异常 */
     public function testCallPgsqlMethodOnMysqlThrows(): void
     {
         $db = db();
@@ -66,6 +72,7 @@ final class MysqlIntegrationTest extends TestCase
 
     // ==================== insert 集成验证 ====================
 
+    /** insert 应生成包含目标表和字段的 SQL */
     public function testInsertSql(): void
     {
         $db = db();
@@ -80,6 +87,7 @@ final class MysqlIntegrationTest extends TestCase
 
     // ==================== Lock 语法验证 ====================
 
+    /** sharedLock 应生成 MySQL 共享锁语法 */
     public function testSharedLockSql(): void
     {
         $db = db();
@@ -90,6 +98,7 @@ final class MysqlIntegrationTest extends TestCase
         })->table('users')->where('id = ?', 1)->sharedLock()->get();
     }
 
+    /** lockForUpdate 应生成 MySQL 排他锁语法 */
     public function testLockForUpdateSql(): void
     {
         $db = db();

@@ -222,6 +222,7 @@ abstract class AbstractConnection implements ConnectionInterface
             throw new \RuntimeException('The Connection::class cannot be executed repeatedly, please use the Database::class call');
         }
 
+        $hasResultSet = false;
         $beginTime = microtime(true);
         try {
             $this->prepare();
@@ -230,6 +231,7 @@ abstract class AbstractConnection implements ConnectionInterface
                 list($flag, $code, $message) = $this->statement->errorInfo();
                 throw new \PDOException(sprintf('%s %d %s', $flag, $code, $message), $code);
             }
+            $hasResultSet = $this->statement->columnCount() > 0;
         } catch (\Throwable $ex) {
             throw $ex;
         } finally {
@@ -281,14 +283,11 @@ abstract class AbstractConnection implements ConnectionInterface
             $debug and $debug($this);
         }
 
-        // 事务还是要复用 Connection 清理依然需要
-        // 抛出异常时不清理，因为需要重连后重试
+        // 执行失败时保留查询参数，供原有 execute 重连逻辑重试
         $this->clear();
 
-        // 执行完立即回收
-        // 抛出异常时不回收，重连那里还需要验证是否在事务中
-        // 事务除外，事务在 commit rollback __destruct 中回收
-        if ($this->connector->pool && !$this instanceof Transaction) {
+        // 无结果集可以立即回池；查询结果由链式调用读取后在析构函数中归还
+        if (!$hasResultSet && $this->connector->pool && !$this instanceof Transaction) {
             $this->connector->__return();
             $this->connector = new EmptyConnector();
         }
@@ -307,8 +306,20 @@ abstract class AbstractConnection implements ConnectionInterface
         $this->values = [];
     }
 
+    /**
+     * 关闭当前结果集
+     */
+    protected function closeCursor(): void
+    {
+        if ($this->statement) {
+            $this->statement->closeCursor();
+        }
+    }
+
     protected function prepare()
     {
+        // Transaction 可连续执行 SQL，新语句开始前先关闭上一结果集
+        $this->closeCursor();
         if (!empty($this->params)) { // 参数绑定
             // 支持insert里面带函数
             foreach ($this->params as $k => $v) {
@@ -487,7 +498,9 @@ abstract class AbstractConnection implements ConnectionInterface
     public function queryOne(int $fetchStyle = null)
     {
         $fetchStyle = $fetchStyle ?: $this->options[\PDO::ATTR_DEFAULT_FETCH_MODE];
-        return $this->statement->fetch($fetchStyle);
+        $result = $this->statement->fetch($fetchStyle);
+        $this->closeCursor();
+        return $result;
     }
 
     /**
@@ -498,7 +511,9 @@ abstract class AbstractConnection implements ConnectionInterface
     public function queryAll(int $fetchStyle = null): array
     {
         $fetchStyle = $fetchStyle ?: $this->options[\PDO::ATTR_DEFAULT_FETCH_MODE];
-        return $this->statement->fetchAll($fetchStyle);
+        $result = $this->statement->fetchAll($fetchStyle);
+        $this->closeCursor();
+        return $result;
     }
 
     /**
@@ -509,9 +524,10 @@ abstract class AbstractConnection implements ConnectionInterface
     public function queryColumn(int $columnNumber = 0): array
     {
         $column = [];
-        while ($row = $this->statement->fetchColumn($columnNumber)) {
+        while (false !== ($row = $this->statement->fetchColumn($columnNumber))) {
             $column[] = $row;
         }
+        $this->closeCursor();
         return $column;
     }
 
@@ -521,7 +537,9 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function queryScalar()
     {
-        return $this->statement->fetchColumn();
+        $result = $this->statement->fetchColumn();
+        $this->closeCursor();
+        return $result;
     }
 
     /**

@@ -51,7 +51,7 @@ class Connection extends AbstractConnection
         try {
             return call_user_func_array(parent::class . "::{$name}", $arguments);
         } catch (\Throwable $ex) {
-            if (!$retried && $this->isDisconnectException($ex) && !$this->inTransaction()) {
+            if (!$retried && $name === 'execute' && $this->isDisconnectException($ex) && !$this->inTransaction()) {
                 try {
                     $this->reconnect();
                     // 重连后允许再次执行
@@ -83,8 +83,18 @@ class Connection extends AbstractConnection
             $this->connector = new EmptyConnector();
             return;
         }
-        $this->connector->__return();
-        $this->connector = new EmptyConnector();
+        try {
+            $this->closeCursor();
+            $this->connector->__return();
+        } catch (\Throwable $ignored) {
+            // 未读结果无法安全关闭时丢弃连接，析构阶段不抛异常
+            try {
+                $this->connector->__discard();
+            } catch (\Throwable $discardException) {
+            }
+        } finally {
+            $this->connector = new EmptyConnector();
+        }
     }
 
 }

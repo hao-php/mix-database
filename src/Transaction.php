@@ -31,6 +31,7 @@ class Transaction extends Connection
         if ($this->connector instanceof EmptyConnector) {
             return;
         }
+        $this->closeCursor();
         if (!$this->connector->instance()->commit()) {
             throw new \PDOException('Commit transaction failed');
         }
@@ -46,6 +47,7 @@ class Transaction extends Connection
         if ($this->connector instanceof EmptyConnector) {
             return;
         }
+        $this->closeCursor();
         if (!$this->connector->instance()->rollBack()) {
             throw new \PDOException('Rollback transaction failed');
         }

@@ -12,6 +12,7 @@ final class QueryBuilderTest extends TestCase
 
     // ==================== SELECT 测试 ====================
 
+    /** 单个及多个 order 调用应按顺序生成 ORDER BY 子句 */
     public function testSelectOrder(): void
     {
         $db = db();
@@ -28,6 +29,7 @@ final class QueryBuilderTest extends TestCase
         })->table('users')->order('id', 'desc')->order('name', 'asc')->get();
     }
 
+    /** limit 与 offset 应生成正确的分页 SQL 和绑定参数 */
     public function testSelectLimit(): void
     {
         $db = db();
@@ -46,6 +48,7 @@ final class QueryBuilderTest extends TestCase
         })->table('users')->offset(10)->limit(5)->get();
     }
 
+    /** group 与 having 应生成正确的分组过滤 SQL */
     public function testSelectGroupHaving(): void
     {
         $db = db();
@@ -64,6 +67,7 @@ final class QueryBuilderTest extends TestCase
         })->table('news')->select('uid, COUNT(*) AS total')->group('uid')->having('COUNT(*) > ? AND COUNT(*) < ?', 0, 10)->get();
     }
 
+    /** leftJoin 应生成正确的关联条件和绑定参数 */
     public function testSelectJoin(): void
     {
         $db = db();
@@ -78,6 +82,7 @@ final class QueryBuilderTest extends TestCase
 
     // ==================== WHERE 测试 ====================
 
+    /** 多次 where 及单个复合条件应正确生成 AND 查询 */
     public function testWhereAnd(): void
     {
         $db = db();
@@ -103,6 +108,7 @@ final class QueryBuilderTest extends TestCase
             ->get();
     }
 
+    /** where 中的 OR 条件应保留 SQL 和绑定参数顺序 */
     public function testWhereOr(): void
     {
         $db = db();
@@ -118,6 +124,7 @@ final class QueryBuilderTest extends TestCase
             ->get();
     }
 
+    /** IN 数组与普通占位符混用时应正确展开并绑定参数 */
     public function testWhereIn(): void
     {
         $db = db();

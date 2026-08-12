@@ -154,6 +154,32 @@ final class ContextModelTest extends ContextTestCase
         $this->assertCount(1, $column);
     }
 
+    /** Model 的 insert/get/first 在未缓冲连接池下均应正确归还连接 */
+    public function testModelReleasesUnbufferedPoolConnectionAfterRead(): void
+    {
+        swoole_co_run(function () {
+            $db = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD, [
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false,
+            ]);
+            $db->startPool(1, 1);
+            $model = ContextTestUserModel::db($db);
+
+            $insertResult = $model->insert(['user_name' => 'pool_model']);
+            $this->assertNotEmpty($insertResult->lastInsertId());
+            $this->assertSame(0, $db->poolStats()['active']);
+            $this->assertSame(1, $db->poolStats()['idle']);
+
+            $this->assertIsArray($model->get());
+            $this->assertSame(0, $db->poolStats()['active']);
+            $this->assertSame(1, $db->poolStats()['idle']);
+
+            $model->first();
+            $this->assertSame(0, $db->poolStats()['active']);
+            $this->assertSame(1, $db->poolStats()['idle']);
+        });
+    }
+
     /** 复杂查询：多条件 + 排序 + limit */
     public function testComplexQuery(): void
     {
@@ -253,4 +279,3 @@ class ContextTestUserModel extends BaseModel
         return date('Y-m-d H:i:s');
     }
 }
-

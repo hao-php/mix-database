@@ -13,6 +13,7 @@ final class CrudTest extends TestCase
 
     // ==================== Insert 测试 ====================
 
+    /** 插入单条记录并验证返回有效的自增 ID */
     public function testInsert(): void
     {
         $db = db();
@@ -24,6 +25,7 @@ final class CrudTest extends TestCase
         $this->assertGreaterThan(0, (int)$id);
     }
 
+    /** 插入包含数据库表达式的记录并验证执行成功 */
     public function testInsertWithExpr(): void
     {
         $db = db();
@@ -37,6 +39,7 @@ final class CrudTest extends TestCase
         $this->assertGreaterThan(0, (int)$id);
     }
 
+    /** 向不存在的数据表插入时应抛出异常 */
     public function testInsertNonExistentTable(): void
     {
         $db = db();
@@ -48,6 +51,7 @@ final class CrudTest extends TestCase
         ])->lastInsertId();
     }
 
+    /** 批量插入多条记录并验证返回有效的自增 ID */
     public function testBatchInsert(): void
     {
         $db = db();
@@ -68,6 +72,7 @@ final class CrudTest extends TestCase
 
     // ==================== Update 测试 ====================
 
+    /** 更新单个字段并验证受影响行数 */
     public function testUpdateSingleField(): void
     {
         $db = db();
@@ -76,6 +81,7 @@ final class CrudTest extends TestCase
         $this->assertGreaterThanOrEqual(0, $rowsAffected);
     }
 
+    /** 一次更新多个字段并验证受影响行数 */
     public function testUpdateMultipleFields(): void
     {
         $db = db();
@@ -88,6 +94,7 @@ final class CrudTest extends TestCase
         $this->assertGreaterThanOrEqual(0, $rowsAffected);
     }
 
+    /** 使用数据库表达式更新字段并验证各调用形式均可执行 */
     public function testUpdateWithExpr(): void
     {
         $db = db();
@@ -113,6 +120,7 @@ final class CrudTest extends TestCase
 
     // ==================== Delete 测试 ====================
 
+    /** 删除不存在的记录时受影响行数应为零 */
     public function testDelete(): void
     {
         $db = db();
@@ -123,6 +131,7 @@ final class CrudTest extends TestCase
 
     // ==================== Raw/Exec 测试 ====================
 
+    /** 使用 exec 执行原生写语句并读取受影响行数 */
     public function testExec(): void
     {
         $db = db();
@@ -131,6 +140,7 @@ final class CrudTest extends TestCase
         $this->assertEquals(0, $rowsAffected);
     }
 
+    /** 使用 raw 配合 get 获取多行结果并验证查询日志 */
     public function testRawQuery(): void
     {
         $db = db();
@@ -150,6 +160,7 @@ final class CrudTest extends TestCase
         $this->assertTrue(isset($obj->add_time));
     }
 
+    /** 使用 raw 配合 first 获取首行结果并验证查询日志 */
     public function testRawQueryFirst(): void
     {
         $db = db();

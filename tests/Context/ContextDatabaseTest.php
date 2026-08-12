@@ -17,11 +17,13 @@ final class ContextDatabaseTest extends ContextTestCase
         $this->assertInstanceOf(Database::class, $this->db);
     }
 
+    /** Context Database 应透传不含凭据的连接标识 */
     public function testGetConnectionIdentifier(): void
     {
         $this->assertSame(hash('sha256', MYSQL_DSN), $this->db->getConnectionIdentifier());
     }
 
+    /** beginTransaction 应返回上下文事务包装对象 */
     public function testBeginTransaction(): void
     {
         $tx = $this->db->beginTransaction();
