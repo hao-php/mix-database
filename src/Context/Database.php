@@ -138,6 +138,18 @@ class Database
         return $this->getHandler()->exec($sql, ...$values);
     }
 
+    /** 获取实体表名，事务中复用当前事务连接。 */
+    public function listTables(?string $like = null): array
+    {
+        return $this->getHandler()->listTables($like);
+    }
+
+    /** 删除表，事务中复用当前事务连接。 */
+    public function dropTable(string $table, bool $ifExists = false): ConnectionInterface
+    {
+        return $this->getHandler()->dropTable($table, $ifExists);
+    }
+
     /**
      * 插入
      * @param string $table

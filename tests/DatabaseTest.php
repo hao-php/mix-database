@@ -4,6 +4,7 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 use Haoa\MixDatabase\Database;
 use Haoa\MixDatabase\Driver\MysqlDriver;
+use Haoa\MixDatabase\Driver\PgsqlDriver;
 
 /**
  * Database 入口类测试
@@ -16,7 +17,7 @@ final class DatabaseTest extends TestCase
     {
         $db = db();
         $driver = $db->getDriver();
-        $this->assertInstanceOf(MysqlDriver::class, $driver);
+        $this->assertInstanceOf(TEST_DRIVER === 'mysql' ? MysqlDriver::class : PgsqlDriver::class, $driver);
     }
 
     /** 默认配置不应给表名和字段名添加标识符引号 */
@@ -24,28 +25,28 @@ final class DatabaseTest extends TestCase
     {
         $db = db();
         $driver = $db->getDriver();
-        $this->assertEquals('users', $driver->quoteTableName('users'));
+        $this->assertEquals('mixdb_test_users', $driver->quoteTableName('mixdb_test_users'));
         $this->assertEquals('name', $driver->quoteColumnName('name'));
     }
 
     /** 开启配置后应给表名和字段名添加 MySQL 标识符引号 */
     public function testQuoteIdentifiersEnabled(): void
     {
-        $db = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD, [], true);
+        $db = new Database(TEST_DSN, TEST_USERNAME, TEST_PASSWORD, [], true);
         $driver = $db->getDriver();
-        $this->assertEquals('`users`', $driver->quoteTableName('users'));
-        $this->assertEquals('`name`', $driver->quoteColumnName('name'));
+        $this->assertEquals(TEST_DRIVER === 'mysql' ? '`mixdb_test_users`' : '"mixdb_test_users"', $driver->quoteTableName('mixdb_test_users'));
+        $this->assertEquals(TEST_DRIVER === 'mysql' ? '`name`' : '"name"', $driver->quoteColumnName('name'));
     }
 
     /** 连接标识应由 DSN 生成且不泄露用户名和密码 */
     public function testGetConnectionIdentifier(): void
     {
-        $db = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD);
+        $db = new Database(TEST_DSN, TEST_USERNAME, TEST_PASSWORD);
         $identifier = $db->getConnectionIdentifier();
 
-        $this->assertSame(hash('sha256', MYSQL_DSN), $identifier);
-        $this->assertStringNotContainsString(MYSQL_USERNAME, $identifier);
-        $this->assertStringNotContainsString(MYSQL_PASSWORD, $identifier);
+        $this->assertSame(hash('sha256', TEST_DSN), $identifier);
+        $this->assertStringNotContainsString(TEST_USERNAME, $identifier);
+        $this->assertStringNotContainsString(TEST_PASSWORD, $identifier);
     }
 
     /** tableExists 应正确识别存在和不存在的数据表 */
@@ -53,7 +54,7 @@ final class DatabaseTest extends TestCase
     {
         $db = db();
 
-        $this->assertTrue($db->tableExists('users'));
+        $this->assertTrue($db->tableExists('mixdb_test_users'));
         $this->assertFalse($db->tableExists('table_that_does_not_exist'));
     }
 
@@ -63,7 +64,7 @@ final class DatabaseTest extends TestCase
         $db = db();
         $this->expectException(\InvalidArgumentException::class);
 
-        $db->tableExists('users; DROP TABLE users');
+        $db->tableExists('mixdb_test_users; DROP TABLE mixdb_test_users');
     }
 
     /** 调用当前驱动不支持的方法时应抛出明确异常 */
@@ -72,8 +73,11 @@ final class DatabaseTest extends TestCase
         $db = db();
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('not supported by');
-        // MySQL 驱动没有 buildInsertOnConflict 方法
-        $db->insertOnConflict('users', ['name' => 'foo'], 'name');
+        if (TEST_DRIVER === 'mysql') {
+            $db->insertOnConflict('mixdb_test_users', ['name' => 'foo'], 'name');
+        } else {
+            $db->replaceInsert('mixdb_test_users', ['name' => 'foo']);
+        }
     }
 
 }

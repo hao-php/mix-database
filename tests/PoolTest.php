@@ -9,10 +9,10 @@ final class PoolTest extends TestCase
     private function unbufferedPool(): \Haoa\MixDatabase\Database
     {
         $db = new \Haoa\MixDatabase\Database(
-            MYSQL_DSN,
-            MYSQL_USERNAME,
-            MYSQL_PASSWORD,
-            [\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false]
+            TEST_DSN,
+            TEST_USERNAME,
+            TEST_PASSWORD,
+            TEST_DRIVER === 'mysql' ? [\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false] : []
         );
         $db->startPool(1, 1);
         return $db;
@@ -55,7 +55,7 @@ final class PoolTest extends TestCase
             $rows = $db->raw('SELECT 1 AS value UNION ALL SELECT 2')->get();
             $this->assertCount(2, $rows);
             $this->assertSame(0, $db->poolStats()['active']);
-            $this->assertTrue($db->tableExists('users'));
+            $this->assertTrue($db->tableExists('mixdb_test_users'));
         });
     }
 
@@ -65,7 +65,7 @@ final class PoolTest extends TestCase
         $db = $this->unbufferedPool();
         swoole_co_run(function () use ($db) {
             // 即使业务暂时保存返回对象，无结果集语句也不占用池连接。
-            $connection = $db->exec('UPDATE users SET balance = balance WHERE id = -1');
+            $connection = $db->exec('UPDATE mixdb_test_users SET balance = balance WHERE id = -1');
             $this->assertSame(0, $connection->rowCount());
             $this->assertSame(0, $db->poolStats()['active']);
             $this->assertSame(1, $db->poolStats()['idle']);
@@ -94,9 +94,12 @@ final class PoolTest extends TestCase
     /** prepare/execute 阶段连接断开时应自动重连并重试一次 */
     public function testReconnectRetriesExecution(): void
     {
+        if (TEST_DRIVER !== 'mysql') {
+            $this->markTestSkipped('MySQL 专属连接行为');
+        }
         $db = $this->unbufferedPool();
         swoole_co_run(function () use ($db) {
-            $connection = $db->table('users')->where('id = ?', 1);
+            $connection = $db->table('mixdb_test_users')->where('id = ?', 1);
             $this->killConnection($this->connectionId($connection));
             $this->assertEquals(1, $connection->first()->id);
             unset($connection);
@@ -107,9 +110,12 @@ final class PoolTest extends TestCase
     /** fetch 阶段断线应抛出 PDOException，并在析构时丢弃异常连接 */
     public function testFetchDisconnectThrowsAndDiscardsConnection(): void
     {
+        if (TEST_DRIVER !== 'mysql') {
+            $this->markTestSkipped('MySQL 专属连接行为');
+        }
         $db = $this->unbufferedPool();
         swoole_co_run(function () use ($db) {
-            $connection = $db->table('users');
+            $connection = $db->table('mixdb_test_users');
             $id = $this->connectionId($connection);
             $connection->raw(
                 "SELECT REPEAT('x', 1048576) AS value "
@@ -131,6 +137,9 @@ final class PoolTest extends TestCase
     /** 多个协程争抢单个连接时，未缓冲结果读取完成前连接不得被其他协程借走 */
     public function testCoroutinesCannotBorrowConnectionWithUnreadResult(): void
     {
+        if (TEST_DRIVER !== 'mysql') {
+            $this->markTestSkipped('MySQL 专属连接行为');
+        }
         $db = $this->unbufferedPool();
         swoole_co_run(function () use ($db) {
             $ready = new \Swoole\Coroutine\Channel(1);
@@ -198,7 +207,7 @@ final class PoolTest extends TestCase
             $chan = new \Swoole\Coroutine\Channel();
             for ($i = 0; $i < $max; $i++) {
                 go(function () use ($db, $chan) {
-                    $db->raw('select sleep(1)')->queryAll();
+                    $db->raw(TEST_DRIVER === 'mysql' ? 'select sleep(1)' : 'select pg_sleep(1)')->queryAll();
                     $chan->push(true);
                 });
             }
@@ -224,7 +233,7 @@ final class PoolTest extends TestCase
             for ($i = 0; $i < 2; $i++) {
                 go(function () use ($pool, $chan) {
                     // 模拟耗时查询，依赖 Swoole 协程 hook + 连接池触发切换
-                    $pool->raw('select sleep(1)')->queryAll();
+                    $pool->raw(TEST_DRIVER === 'mysql' ? 'select sleep(1)' : 'select pg_sleep(1)')->queryAll();
                     $chan->push(true);
                 });
             }

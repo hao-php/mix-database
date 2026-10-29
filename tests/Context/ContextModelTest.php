@@ -158,9 +158,10 @@ final class ContextModelTest extends ContextTestCase
     public function testModelReleasesUnbufferedPoolConnectionAfterRead(): void
     {
         swoole_co_run(function () {
-            $db = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD, [
+            $db = new Database(TEST_DSN, TEST_USERNAME, TEST_PASSWORD, [
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-                \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false,
+                // PostgreSQL PDO 不支持 MySQL 未缓冲查询选项。
+                ...(TEST_DRIVER === 'mysql' ? [\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false] : []),
             ]);
             $db->startPool(1, 1);
             $model = ContextTestUserModel::db($db);
@@ -260,11 +261,11 @@ final class ContextModelTest extends ContextTestCase
 }
 
 /**
- * 专用测试模型，使用 test_users 表，并覆写时间字段构造逻辑。
+ * 专用测试模型，使用 mixdb_test_context_users 表，并覆写时间字段构造逻辑。
  */
 class ContextTestUserModel extends BaseModel
 {
-    public static string $tableName = 'test_users';
+    public static string $tableName = 'mixdb_test_context_users';
 
     protected function buildUpdateTime($time = null)
     {

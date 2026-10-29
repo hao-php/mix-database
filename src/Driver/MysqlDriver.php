@@ -59,6 +59,26 @@ class MysqlDriver implements DriverInterface
         return [$sql, [$table]];
     }
 
+    /** 构建当前数据库或 schema 中账号可见的实体表名查询。 */
+    public function buildListTablesSql(?string $like = null): array
+    {
+        $sql = "SELECT table_name FROM information_schema.tables "
+            . "WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'";
+        $values = [];
+        if ($like !== null) {
+            // 显式指定反斜线转义，统一两种数据库的 LIKE 模式语义。
+            $sql .= ' AND table_name LIKE ? ESCAPE ?';
+            $values = [$like, '\\'];
+        }
+        return [$sql . ' ORDER BY table_name', $values];
+    }
+
+    /** 构建删除表的 SQL，表名始终作为标识符引用。 */
+    public function buildDropTableSql(string $table, bool $ifExists = false): string
+    {
+        return 'DROP TABLE ' . ($ifExists ? 'IF EXISTS ' : '') . $this->quoteIdentifier($table);
+    }
+
     /**
      * @return string
      */

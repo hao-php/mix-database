@@ -9,6 +9,14 @@ use Haoa\MixDatabase\ConnectionInterface;
  */
 final class MysqlIntegrationTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        if (TEST_DRIVER !== 'mysql') {
+            $this->markTestSkipped('MySQL 专属语法测试');
+        }
+    }
+
 
     // ==================== Select 补充 ====================
 
@@ -16,7 +24,7 @@ final class MysqlIntegrationTest extends TestCase
     public function testSelectFirst(): void
     {
         $db = db();
-        $row = $db->table('users')->where('id = ?', 1)->first();
+        $row = $db->table('mixdb_test_users')->where('id = ?', 1)->first();
         $this->assertIsObject($row);
         $this->assertEquals(1, $row->id);
     }
@@ -25,7 +33,7 @@ final class MysqlIntegrationTest extends TestCase
     public function testSelectValue(): void
     {
         $db = db();
-        $name = $db->table('users')->where('id = ?', 1)->value('name');
+        $name = $db->table('mixdb_test_users')->where('id = ?', 1)->value('name');
         $this->assertIsString($name);
     }
 
@@ -37,7 +45,7 @@ final class MysqlIntegrationTest extends TestCase
         $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
             $_this->assertStringContainsString('SELECT id, name', $log['sql']);
-        })->table('users')->select('id', 'name')->where('id = ?', 1)->get();
+        })->table('mixdb_test_users')->select('id', 'name')->where('id = ?', 1)->get();
     }
 
     // ==================== MySQL 特有方法 (__call 透传) ====================
@@ -46,7 +54,7 @@ final class MysqlIntegrationTest extends TestCase
     public function testReplaceInsert(): void
     {
         $db = db();
-        $db->replaceInsert('users', ['name' => 'replace_test', 'balance' => 50]);
+        $db->replaceInsert('mixdb_test_users', ['name' => 'replace_test', 'balance' => 50]);
         $this->assertTrue(true);
     }
 
@@ -54,11 +62,11 @@ final class MysqlIntegrationTest extends TestCase
     public function testInsertOnDuplicateKey(): void
     {
         $db = db();
-        $id = $db->insert('users', ['name' => 'dup_test', 'balance' => 10])->lastInsertId();
+        $id = $db->insert('mixdb_test_users', ['name' => 'dup_test', 'balance' => 10])->lastInsertId();
 
-        $db->exec("INSERT INTO users (id, name, balance) VALUES (?, 'dup_test2', 20) ON DUPLICATE KEY UPDATE balance = 20", (int)$id);
+        $db->exec("INSERT INTO mixdb_test_users (id, name, balance) VALUES (?, 'dup_test2', 20) ON DUPLICATE KEY UPDATE balance = 20", (int)$id);
 
-        $balance = $db->table('users')->where('id = ?', (int)$id)->value('balance');
+        $balance = $db->table('mixdb_test_users')->where('id = ?', (int)$id)->value('balance');
         $this->assertEquals(20, $balance);
     }
 
@@ -67,7 +75,7 @@ final class MysqlIntegrationTest extends TestCase
     {
         $db = db();
         $this->expectException(\BadMethodCallException::class);
-        $db->insertOnConflict('users', ['name' => 'foo'], 'name');
+        $db->insertOnConflict('mixdb_test_users', ['name' => 'foo'], 'name');
     }
 
     // ==================== insert 集成验证 ====================
@@ -79,10 +87,10 @@ final class MysqlIntegrationTest extends TestCase
         $_this = $this;
         $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
-            $_this->assertStringContainsString('INSERT INTO users', $log['sql']);
+            $_this->assertStringContainsString('INSERT INTO mixdb_test_users', $log['sql']);
             $_this->assertStringContainsString('name', $log['sql']);
             $_this->assertStringContainsString('balance', $log['sql']);
-        })->insert('users', ['name' => 'quote_test', 'balance' => 0]);
+        })->insert('mixdb_test_users', ['name' => 'quote_test', 'balance' => 0]);
     }
 
     // ==================== Lock 语法验证 ====================
@@ -95,7 +103,7 @@ final class MysqlIntegrationTest extends TestCase
         $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
             $_this->assertStringContainsString('LOCK IN SHARE MODE', $log['sql']);
-        })->table('users')->where('id = ?', 1)->sharedLock()->get();
+        })->table('mixdb_test_users')->where('id = ?', 1)->sharedLock()->get();
     }
 
     /** lockForUpdate 应生成 MySQL 排他锁语法 */
@@ -106,7 +114,7 @@ final class MysqlIntegrationTest extends TestCase
         $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
             $_this->assertStringContainsString('FOR UPDATE', $log['sql']);
-        })->table('users')->where('id = ?', 1)->lockForUpdate()->get();
+        })->table('mixdb_test_users')->where('id = ?', 1)->lockForUpdate()->get();
     }
 
 }

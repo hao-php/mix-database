@@ -197,6 +197,20 @@ abstract class AbstractConnection implements ConnectionInterface
         return $this->exec($sql);
     }
 
+    /** 获取当前数据库或 schema 中账号可见的实体表名。 */
+    public function listTables(?string $like = null): array
+    {
+        list($sql, $values) = $this->getDriver()->buildListTablesSql($like);
+        return $this->raw($sql, ...$values)->queryColumn();
+    }
+
+    /** 校验表名并删除表，供普通连接及事务连接共用。 */
+    public function dropTable(string $table, bool $ifExists = false): ConnectionInterface
+    {
+        $table = $this->validateTableName($table);
+        return $this->exec($this->getDriver()->buildDropTableSql($table, $ifExists));
+    }
+
     /**
      * 校验表名合法性
      * @param string $table

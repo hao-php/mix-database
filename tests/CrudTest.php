@@ -18,7 +18,7 @@ final class CrudTest extends TestCase
     {
         $db = db();
 
-        $id = $db->insert('users', [
+        $id = $db->insert('mixdb_test_users', [
             'name' => 'foo1',
             'balance' => 1,
         ])->lastInsertId();
@@ -33,9 +33,9 @@ final class CrudTest extends TestCase
         $data = [
             'name' => 'foo4',
             'balance' => 4,
-            'add_time' => new Expr('CURRENT_TIMESTAMP()'),
+            'add_time' => new Expr(TEST_DRIVER === 'mysql' ? 'CURRENT_TIMESTAMP()' : 'CURRENT_TIMESTAMP'),
         ];
-        $id = $db->insert('users', $data)->lastInsertId();
+        $id = $db->insert('mixdb_test_users', $data)->lastInsertId();
         $this->assertGreaterThan(0, (int)$id);
     }
 
@@ -45,7 +45,7 @@ final class CrudTest extends TestCase
         $db = db();
 
         $this->expectException(\Throwable::class);
-        $db->insert('users_11111', [
+        $db->insert('mixdb_test_missing_users', [
             'name' => 'foo1',
             'balance' => 1,
         ])->lastInsertId();
@@ -66,7 +66,7 @@ final class CrudTest extends TestCase
                 'balance' => 3,
             ]
         ];
-        $id = $db->batchInsert('users', $data)->lastInsertId();
+        $id = $db->batchInsert('mixdb_test_users', $data)->lastInsertId();
         $this->assertGreaterThan(0, (int)$id);
     }
 
@@ -77,7 +77,7 @@ final class CrudTest extends TestCase
     {
         $db = db();
 
-        $rowsAffected = $db->table('users')->where('id = ?', 1)->update('name', 'foo1')->rowCount();
+        $rowsAffected = $db->table('mixdb_test_users')->where('id = ?', 1)->update('name', 'foo1')->rowCount();
         $this->assertGreaterThanOrEqual(0, $rowsAffected);
     }
 
@@ -90,7 +90,7 @@ final class CrudTest extends TestCase
             'name' => 'foo2',
             'balance' => 100,
         ];
-        $rowsAffected = $db->table('users')->where('id = ?', 1)->updates($data)->rowCount();
+        $rowsAffected = $db->table('mixdb_test_users')->where('id = ?', 1)->updates($data)->rowCount();
         $this->assertGreaterThanOrEqual(0, $rowsAffected);
     }
 
@@ -102,19 +102,19 @@ final class CrudTest extends TestCase
         $data = [
             'balance' => new Expr('balance + ?', 1),
         ];
-        $rowsAffected = $db->table('users')->where('id = ?', 1)->updates($data)->rowCount();
+        $rowsAffected = $db->table('mixdb_test_users')->where('id = ?', 1)->updates($data)->rowCount();
         $this->assertGreaterThanOrEqual(0, $rowsAffected);
 
-        $rowsAffected = $db->table('users')->where('id = ?', 1)->update('balance', new Expr('balance + ?', 1))->rowCount();
+        $rowsAffected = $db->table('mixdb_test_users')->where('id = ?', 1)->update('balance', new Expr('balance + ?', 1))->rowCount();
         $this->assertGreaterThanOrEqual(0, $rowsAffected);
 
-        $rowsAffected = $db->table('users')->where('id = ?', 1)->update('add_time', new Expr('CURRENT_TIMESTAMP()'))->rowCount();
+        $rowsAffected = $db->table('mixdb_test_users')->where('id = ?', 1)->update('add_time', new Expr(TEST_DRIVER === 'mysql' ? 'CURRENT_TIMESTAMP()' : 'CURRENT_TIMESTAMP'))->rowCount();
         $this->assertGreaterThanOrEqual(0, $rowsAffected);
 
         $data = [
-            'add_time' => new Expr('CURRENT_TIMESTAMP()'),
+            'add_time' => new Expr(TEST_DRIVER === 'mysql' ? 'CURRENT_TIMESTAMP()' : 'CURRENT_TIMESTAMP'),
         ];
-        $rowsAffected = $db->table('users')->where('id = ?', 1)->updates($data)->rowCount();
+        $rowsAffected = $db->table('mixdb_test_users')->where('id = ?', 1)->updates($data)->rowCount();
         $this->assertGreaterThanOrEqual(0, $rowsAffected);
     }
 
@@ -125,7 +125,7 @@ final class CrudTest extends TestCase
     {
         $db = db();
 
-        $rowsAffected = $db->table('users')->where('id = ?', 100000)->delete()->rowCount();
+        $rowsAffected = $db->table('mixdb_test_users')->where('id = ?', 100000)->delete()->rowCount();
         $this->assertEquals(0, $rowsAffected);
     }
 
@@ -136,7 +136,7 @@ final class CrudTest extends TestCase
     {
         $db = db();
 
-        $rowsAffected = $db->exec('DELETE FROM users WHERE id = ?', 100000)->rowCount();
+        $rowsAffected = $db->exec('DELETE FROM mixdb_test_users WHERE id = ?', 100000)->rowCount();
         $this->assertEquals(0, $rowsAffected);
     }
 
@@ -148,9 +148,9 @@ final class CrudTest extends TestCase
 
         $res = $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
-            $_this->assertEquals('SELECT * FROM users WHERE id = ?', $log['sql']);
+            $_this->assertEquals('SELECT * FROM mixdb_test_users WHERE id = ?', $log['sql']);
             $_this->assertEquals([1], $log['bindings']);
-        })->raw('SELECT * FROM users WHERE id = ?', 1)->get();
+        })->raw('SELECT * FROM mixdb_test_users WHERE id = ?', 1)->get();
 
         $obj = array_pop($res);
         $this->assertIsObject($obj);
@@ -168,9 +168,9 @@ final class CrudTest extends TestCase
 
         $obj = $db->debug(function (ConnectionInterface $conn) use ($_this) {
             $log = $conn->queryLog();
-            $_this->assertEquals('SELECT * FROM users WHERE id = ?', $log['sql']);
+            $_this->assertEquals('SELECT * FROM mixdb_test_users WHERE id = ?', $log['sql']);
             $_this->assertEquals([1], $log['bindings']);
-        })->raw('SELECT * FROM users WHERE id = ?', 1)->first();
+        })->raw('SELECT * FROM mixdb_test_users WHERE id = ?', 1)->first();
 
         $this->assertIsObject($obj);
         $this->assertTrue(isset($obj->id));

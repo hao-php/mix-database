@@ -16,12 +16,12 @@ final class TransTest extends TestCase
             'name' => 'foo8',
             'balance' => 8,
         ];
-        $id1 = $db->insert('users', $data)->lastInsertId();
-        $id2 = $db->insert('users', $data)->lastInsertId();
+        $id1 = $db->insert('mixdb_test_users', $data)->lastInsertId();
+        $id2 = $db->insert('mixdb_test_users', $data)->lastInsertId();
         $this->assertNotEquals($id1, $id2);
 
-        $count1 = $db->table('users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
-        $count2 = $db->table('users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+        $count1 = $db->table('mixdb_test_users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+        $count2 = $db->table('mixdb_test_users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
         $this->assertNotEquals($count1, $count2);
 
         // 没有pool + 事务
@@ -30,12 +30,12 @@ final class TransTest extends TestCase
             'name' => 'foo8',
             'balance' => 8,
         ];
-        $id1 = $tx->insert('users', $data)->lastInsertId();
-        $id2 = $tx->insert('users', $data)->lastInsertId();
+        $id1 = $tx->insert('mixdb_test_users', $data)->lastInsertId();
+        $id2 = $tx->insert('mixdb_test_users', $data)->lastInsertId();
         $this->assertNotEquals($id1, $id2);
 
-        $count1 = $tx->table('users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
-        $count2 = $tx->table('users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+        $count1 = $tx->table('mixdb_test_users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+        $count2 = $tx->table('mixdb_test_users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
         $this->assertNotEquals($count1, $count2);
     }
 
@@ -50,12 +50,12 @@ final class TransTest extends TestCase
                 'name' => 'foo8',
                 'balance' => 8,
             ];
-            $id1 = $pool->insert('users', $data)->lastInsertId();
-            $id2 = $pool->insert('users', $data)->lastInsertId();
+            $id1 = $pool->insert('mixdb_test_users', $data)->lastInsertId();
+            $id2 = $pool->insert('mixdb_test_users', $data)->lastInsertId();
             $this->assertNotEquals($id1, $id2);
 
-            $count1 = $pool->table('users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
-            $count2 = $pool->table('users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+            $count1 = $pool->table('mixdb_test_users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+            $count2 = $pool->table('mixdb_test_users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
             $this->assertNotEquals($count1, $count2);
         });
 
@@ -68,12 +68,12 @@ final class TransTest extends TestCase
                 'name' => 'foo8',
                 'balance' => 8,
             ];
-            $id1 = $tx->insert('users', $data)->lastInsertId();
-            $id2 = $tx->insert('users', $data)->lastInsertId();
+            $id1 = $tx->insert('mixdb_test_users', $data)->lastInsertId();
+            $id2 = $tx->insert('mixdb_test_users', $data)->lastInsertId();
             $this->assertNotEquals($id1, $id2);
 
-            $count1 = $tx->table('users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
-            $count2 = $tx->table('users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+            $count1 = $tx->table('mixdb_test_users')->where('id = ?', $id1)->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
+            $count2 = $tx->table('mixdb_test_users')->update('balance', new Haoa\MixDatabase\Expr('balance + ?', 1))->rowCount();
             $this->assertNotEquals($count1, $count2);
         });
     }
@@ -90,17 +90,17 @@ final class TransTest extends TestCase
                 'name' => 'foo8',
                 'balance' => 8,
             ];
-            $tx->insert('users', $data);
+            $tx->insert('mixdb_test_users', $data);
             $data = [
                 'name' => 'foo9',
                 'add_time' => '2021-09-27 00:00:00',
             ];
-            $tx->insert('users', $data);
+            $tx->insert('mixdb_test_users', $data);
             $tx->commit();
             $this->assertTrue(true);
         } catch (\Throwable $ex) {
             $tx->rollback();
-            $this->assertStringContainsString("Field 'balance' doesn't have a default value", $ex->getMessage());
+            $this->assertStringContainsString('balance', $ex->getMessage());
         }
     }
 
@@ -115,7 +115,7 @@ final class TransTest extends TestCase
                 'name' => 'foo8',
                 'balance' => 8,
             ];
-            $tx->insert('users', $data);
+            $tx->insert('mixdb_test_users', $data);
             throw new \RuntimeException('ERROR');
             $tx->commit();
         } catch (\Throwable $ex) {
@@ -135,7 +135,7 @@ final class TransTest extends TestCase
                 'name' => 'foo9',
                 'balance' => 9,
             ];
-            $tx->insert('users', $data);
+            $tx->insert('mixdb_test_users', $data);
             $_this->assertTrue(true);
         });
     }
@@ -146,16 +146,16 @@ final class TransTest extends TestCase
         $db = db();
 
         $name = 'tx_commit_' . uniqid('', false);
-        $before = count($db->table('users')->where('name = ?', $name)->get());
+        $before = count($db->table('mixdb_test_users')->where('name = ?', $name)->get());
 
         $tx = $db->beginTransaction();
-        $tx->insert('users', [
+        $tx->insert('mixdb_test_users', [
             'name' => $name,
             'balance' => 0,
         ]);
         $tx->commit();
 
-        $after = count($db->table('users')->where('name = ?', $name)->get());
+        $after = count($db->table('mixdb_test_users')->where('name = ?', $name)->get());
         $this->assertEquals($before + 1, $after);
     }
 
@@ -165,16 +165,16 @@ final class TransTest extends TestCase
         $db = db();
 
         $name = 'tx_rollback_' . uniqid('', false);
-        $before = count($db->table('users')->where('name = ?', $name)->get());
+        $before = count($db->table('mixdb_test_users')->where('name = ?', $name)->get());
 
         $tx = $db->beginTransaction();
-        $tx->insert('users', [
+        $tx->insert('mixdb_test_users', [
             'name' => $name,
             'balance' => 0,
         ]);
         $tx->rollback();
 
-        $after = count($db->table('users')->where('name = ?', $name)->get());
+        $after = count($db->table('mixdb_test_users')->where('name = ?', $name)->get());
         $this->assertEquals($before, $after);
     }
 

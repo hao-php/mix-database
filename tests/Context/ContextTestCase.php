@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 use Haoa\MixDatabase\Context\Database;
 
 /**
- * Context 层数据库测试基类，单独使用 test_users 表，避免影响其他用例。
+ * Context 层数据库测试基类，单独使用 mixdb_test_context_users 表，避免影响其他用例。
  */
 abstract class ContextTestCase extends BaseTestCase
 {
@@ -17,7 +17,7 @@ abstract class ContextTestCase extends BaseTestCase
         parent::setUp();
 
         try {
-            $this->db = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD, [
+            $this->db = new Database(TEST_DSN, TEST_USERNAME, TEST_PASSWORD, [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                 \PDO::ATTR_TIMEOUT => 5,
@@ -26,7 +26,7 @@ abstract class ContextTestCase extends BaseTestCase
             $this->createTestTable($this->db);
             $this->cleanupTestTable($this->db);
         } catch (\PDOException $e) {
-            $this->markTestSkipped('Context database connection failed: ' . $e->getMessage());
+            throw $e;
         }
     }
 
@@ -39,21 +39,32 @@ abstract class ContextTestCase extends BaseTestCase
     }
 
     /**
-     * 创建专用测试表：test_users
+     * 创建专用测试表：mixdb_test_context_users
      */
     private function createTestTable(Database $db): void
     {
-        $db->exec("
-            CREATE TABLE IF NOT EXISTS test_users (
+        if (!$db->tableExists('mixdb_test_context_users')) {
+            register_shutdown_function(static function () use ($db) {
+                $db->dropTable('mixdb_test_context_users', true);
+            });
+        }
+        $sql = TEST_DRIVER === 'mysql' ? "
+            CREATE TABLE IF NOT EXISTS mixdb_test_context_users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_name VARCHAR(100) NOT NULL,
-                email VARCHAR(100),
-                age INT,
-                created_at DATETIME,
-                updated_at DATETIME,
+                email VARCHAR(100), age INT,
+                created_at DATETIME, updated_at DATETIME,
                 INDEX idx_user_name (user_name)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        ", []);
+        " : "
+            CREATE TABLE IF NOT EXISTS mixdb_test_context_users (
+                id SERIAL PRIMARY KEY,
+                user_name VARCHAR(100) NOT NULL,
+                email VARCHAR(100), age INT,
+                created_at TIMESTAMP, updated_at TIMESTAMP
+            )
+        ";
+        $db->exec($sql, []);
     }
 
     /**
@@ -61,7 +72,7 @@ abstract class ContextTestCase extends BaseTestCase
      */
     private function cleanupTestTable(Database $db): void
     {
-        $db->exec("TRUNCATE TABLE test_users", []);
+        $db->exec("TRUNCATE TABLE mixdb_test_context_users", []);
     }
 }
 

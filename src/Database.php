@@ -257,6 +257,18 @@ class Database
         return (bool) $this->raw($sql, ...$values)->value('table_exists');
     }
 
+    /** 获取当前数据库或 schema 中账号可见的实体表名。 */
+    public function listTables(?string $like = null): array
+    {
+        return $this->borrow()->listTables($like);
+    }
+
+    /** 删除表，可指定表不存在时忽略。 */
+    public function dropTable(string $table, bool $ifExists = false): ConnectionInterface
+    {
+        return $this->borrow()->dropTable($table, $ifExists);
+    }
+
     /**
      * Borrow connection
      * @return Connection

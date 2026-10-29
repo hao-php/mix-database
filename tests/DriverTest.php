@@ -46,6 +46,23 @@ final class DriverTest extends TestCase
         $this->assertInstanceOf(MysqlDriver::class, $driver);
     }
 
+    /** 两种驱动均应限制查询范围、参数化 LIKE，并安全引用待删除表名。 */
+    public function testTableManagementSql(): void
+    {
+        foreach ([new MysqlDriver(), new PgsqlDriver()] as $driver) {
+            list($sql, $values) = $driver->buildListTablesSql();
+            $this->assertStringContainsString("table_type = 'BASE TABLE'", $sql);
+            $this->assertSame([], $values);
+            list($sql, $values) = $driver->buildListTablesSql('test\\_%');
+            $this->assertStringContainsString('LIKE ? ESCAPE ?', $sql);
+            $this->assertSame(['test\\_%', '\\'], $values);
+            $this->assertStringContainsString('IF EXISTS', $driver->buildDropTableSql('test_table', true));
+            $this->assertStringContainsString('test_table', $driver->buildDropTableSql('test_table'));
+        }
+        $this->assertSame('DROP TABLE `test_table`', (new MysqlDriver())->buildDropTableSql('test_table'));
+        $this->assertSame('DROP TABLE "test_table"', (new PgsqlDriver())->buildDropTableSql('test_table'));
+    }
+
     // ==================== MysqlDriver 方言测试 ====================
 
     /** MySQL 驱动应生成正确的 LIMIT 偏移语法和参数 */
@@ -177,9 +194,9 @@ final class DriverTest extends TestCase
     {
         $driver = new MysqlDriver();
         // 默认关闭，不加引号
-        $this->assertEquals('users', $driver->quoteTableName('users'));
-        $this->assertEquals('users AS u', $driver->quoteTableName('users AS u'));
-        $this->assertEquals('users u', $driver->quoteTableName('users u'));
+        $this->assertEquals('mixdb_test_users', $driver->quoteTableName('mixdb_test_users'));
+        $this->assertEquals('mixdb_test_users AS u', $driver->quoteTableName('mixdb_test_users AS u'));
+        $this->assertEquals('mixdb_test_users u', $driver->quoteTableName('mixdb_test_users u'));
     }
 
     /** MySQL 开启标识符引用后应正确处理表名及别名 */
@@ -187,10 +204,10 @@ final class DriverTest extends TestCase
     {
         $driver = new MysqlDriver();
         $driver->setQuoteIdentifiers(true);
-        $this->assertEquals('`users`', $driver->quoteTableName('users'));
-        $this->assertEquals('`users` AS `u`', $driver->quoteTableName('users AS u'));
-        $this->assertEquals('`users` `u`', $driver->quoteTableName('users u'));
-        $this->assertEquals('`users`', $driver->quoteTableName('`users`'));
+        $this->assertEquals('`mixdb_test_users`', $driver->quoteTableName('mixdb_test_users'));
+        $this->assertEquals('`mixdb_test_users` AS `u`', $driver->quoteTableName('mixdb_test_users AS u'));
+        $this->assertEquals('`mixdb_test_users` `u`', $driver->quoteTableName('mixdb_test_users u'));
+        $this->assertEquals('`mixdb_test_users`', $driver->quoteTableName('`mixdb_test_users`'));
     }
 
     /** MySQL 默认关闭标识符引用时应原样返回字段名 */
@@ -199,7 +216,7 @@ final class DriverTest extends TestCase
         $driver = new MysqlDriver();
         // 默认关闭，不加引号
         $this->assertEquals('name', $driver->quoteColumnName('name'));
-        $this->assertEquals('users.name', $driver->quoteColumnName('users.name'));
+        $this->assertEquals('mixdb_test_users.name', $driver->quoteColumnName('mixdb_test_users.name'));
         $this->assertEquals('*', $driver->quoteColumnName('*'));
         $this->assertEquals('n.*', $driver->quoteColumnName('n.*'));
     }
@@ -210,7 +227,7 @@ final class DriverTest extends TestCase
         $driver = new MysqlDriver();
         $driver->setQuoteIdentifiers(true);
         $this->assertEquals('`name`', $driver->quoteColumnName('name'));
-        $this->assertEquals('`users`.`name`', $driver->quoteColumnName('users.name'));
+        $this->assertEquals('`mixdb_test_users`.`name`', $driver->quoteColumnName('mixdb_test_users.name'));
         $this->assertEquals('`name`', $driver->quoteColumnName('`name`'));
         $this->assertEquals('*', $driver->quoteColumnName('*'));
         // 复杂表达式不处理
@@ -235,9 +252,9 @@ final class DriverTest extends TestCase
     {
         $driver = new PgsqlDriver();
         // 默认关闭，不加引号
-        $this->assertEquals('users', $driver->quoteTableName('users'));
-        $this->assertEquals('users AS u', $driver->quoteTableName('users AS u'));
-        $this->assertEquals('users u', $driver->quoteTableName('users u'));
+        $this->assertEquals('mixdb_test_users', $driver->quoteTableName('mixdb_test_users'));
+        $this->assertEquals('mixdb_test_users AS u', $driver->quoteTableName('mixdb_test_users AS u'));
+        $this->assertEquals('mixdb_test_users u', $driver->quoteTableName('mixdb_test_users u'));
     }
 
     /** PostgreSQL 开启标识符引用后应正确处理表名及别名 */
@@ -245,10 +262,10 @@ final class DriverTest extends TestCase
     {
         $driver = new PgsqlDriver();
         $driver->setQuoteIdentifiers(true);
-        $this->assertEquals('"users"', $driver->quoteTableName('users'));
-        $this->assertEquals('"users" AS "u"', $driver->quoteTableName('users AS u'));
-        $this->assertEquals('"users" "u"', $driver->quoteTableName('users u'));
-        $this->assertEquals('"users"', $driver->quoteTableName('"users"'));
+        $this->assertEquals('"mixdb_test_users"', $driver->quoteTableName('mixdb_test_users'));
+        $this->assertEquals('"mixdb_test_users" AS "u"', $driver->quoteTableName('mixdb_test_users AS u'));
+        $this->assertEquals('"mixdb_test_users" "u"', $driver->quoteTableName('mixdb_test_users u'));
+        $this->assertEquals('"mixdb_test_users"', $driver->quoteTableName('"mixdb_test_users"'));
     }
 
     /** PostgreSQL 默认关闭标识符引用时应原样返回字段名 */
@@ -257,7 +274,7 @@ final class DriverTest extends TestCase
         $driver = new PgsqlDriver();
         // 默认关闭，不加引号
         $this->assertEquals('name', $driver->quoteColumnName('name'));
-        $this->assertEquals('users.name', $driver->quoteColumnName('users.name'));
+        $this->assertEquals('mixdb_test_users.name', $driver->quoteColumnName('mixdb_test_users.name'));
         $this->assertEquals('*', $driver->quoteColumnName('*'));
         $this->assertEquals('n.*', $driver->quoteColumnName('n.*'));
     }
@@ -268,7 +285,7 @@ final class DriverTest extends TestCase
         $driver = new PgsqlDriver();
         $driver->setQuoteIdentifiers(true);
         $this->assertEquals('"name"', $driver->quoteColumnName('name'));
-        $this->assertEquals('"users"."name"', $driver->quoteColumnName('users.name'));
+        $this->assertEquals('"mixdb_test_users"."name"', $driver->quoteColumnName('mixdb_test_users.name'));
         $this->assertEquals('"name"', $driver->quoteColumnName('"name"'));
         $this->assertEquals('*', $driver->quoteColumnName('*'));
         // 复杂表达式不处理
@@ -286,8 +303,8 @@ final class DriverTest extends TestCase
     {
         $driver = new MysqlDriver();
         $driver->setQuoteIdentifiers(true);
-        $result = $driver->buildReplaceInsert('users', ['name' => 'foo', 'balance' => 10]);
-        $this->assertStringContainsString('REPLACE INTO `users`', $result['sql']);
+        $result = $driver->buildReplaceInsert('mixdb_test_users', ['name' => 'foo', 'balance' => 10]);
+        $this->assertStringContainsString('REPLACE INTO `mixdb_test_users`', $result['sql']);
         $this->assertStringContainsString('`name`', $result['sql']);
         $this->assertStringContainsString('`balance`', $result['sql']);
         $this->assertArrayHasKey('params', $result);
@@ -299,9 +316,9 @@ final class DriverTest extends TestCase
     {
         $driver = new MysqlDriver();
         $driver->setQuoteIdentifiers(true);
-        $result = $driver->buildInsertOnDuplicateKey('users', ['name' => 'foo', 'balance' => 10], ['balance']);
+        $result = $driver->buildInsertOnDuplicateKey('mixdb_test_users', ['name' => 'foo', 'balance' => 10], ['balance']);
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
-        $this->assertStringContainsString('`users`', $result['sql']);
+        $this->assertStringContainsString('`mixdb_test_users`', $result['sql']);
         $this->assertStringContainsString('ON DUPLICATE KEY UPDATE', $result['sql']);
         $this->assertStringContainsString('`balance` = VALUES(`balance`)', $result['sql']);
         $this->assertArrayHasKey('values', $result);
@@ -315,9 +332,9 @@ final class DriverTest extends TestCase
     {
         $driver = new PgsqlDriver();
         $driver->setQuoteIdentifiers(true);
-        $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], 'name');
+        $result = $driver->buildInsertOnConflict('mixdb_test_users', ['name' => 'foo', 'balance' => 10], 'name');
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
-        $this->assertStringContainsString('"users"', $result['sql']);
+        $this->assertStringContainsString('"mixdb_test_users"', $result['sql']);
         $this->assertStringContainsString('ON CONFLICT ("name") DO NOTHING', $result['sql']);
         $this->assertArrayHasKey('values', $result);
     }
@@ -327,7 +344,7 @@ final class DriverTest extends TestCase
     {
         $driver = new PgsqlDriver();
         $driver->setQuoteIdentifiers(true);
-        $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], 'name', ['balance']);
+        $result = $driver->buildInsertOnConflict('mixdb_test_users', ['name' => 'foo', 'balance' => 10], 'name', ['balance']);
         $this->assertStringContainsString('ON CONFLICT ("name") DO UPDATE SET', $result['sql']);
         $this->assertStringContainsString('"balance" = EXCLUDED."balance"', $result['sql']);
     }
@@ -337,7 +354,7 @@ final class DriverTest extends TestCase
     {
         $driver = new PgsqlDriver();
         $driver->setQuoteIdentifiers(true);
-        $result = $driver->buildInsertOnConflict('users', ['name' => 'foo', 'balance' => 10], ['name', 'balance']);
+        $result = $driver->buildInsertOnConflict('mixdb_test_users', ['name' => 'foo', 'balance' => 10], ['name', 'balance']);
         $this->assertStringContainsString('ON CONFLICT ("name", "balance") DO NOTHING', $result['sql']);
     }
 
@@ -346,9 +363,9 @@ final class DriverTest extends TestCase
     {
         $driver = new PgsqlDriver();
         $driver->setQuoteIdentifiers(true);
-        $result = $driver->buildInsertReturning('users', ['name' => 'foo', 'balance' => 10], 'id');
+        $result = $driver->buildInsertReturning('mixdb_test_users', ['name' => 'foo', 'balance' => 10], 'id');
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
-        $this->assertStringContainsString('"users"', $result['sql']);
+        $this->assertStringContainsString('"mixdb_test_users"', $result['sql']);
         $this->assertStringContainsString('RETURNING "id"', $result['sql']);
         $this->assertArrayHasKey('params', $result);
     }

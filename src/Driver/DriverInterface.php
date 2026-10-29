@@ -32,6 +32,12 @@ interface DriverInterface
      */
     public function buildTableExistsSql(string $table): array;
 
+    /** 构建当前数据库或 schema 的实体表名查询，可使用 LIKE 模式筛选。 */
+    public function buildListTablesSql(?string $like = null): array;
+
+    /** 构建删除表的 SQL，不级联删除依赖对象。 */
+    public function buildDropTableSql(string $table, bool $ifExists = false): string;
+
     /**
      * 共享锁语法
      * MySQL: LOCK IN SHARE MODE  PgSQL: FOR SHARE

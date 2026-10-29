@@ -15,6 +15,12 @@ interface ConnectionInterface
 
     public function exec(string $sql, ...$values): ConnectionInterface;
 
+    /** 获取实体表名，LIKE 模式使用 %、_ 通配符及反斜线转义。 */
+    public function listTables(?string $like = null): array;
+
+    /** 删除表，可指定表不存在时忽略。 */
+    public function dropTable(string $table, bool $ifExists = false): ConnectionInterface;
+
     public function table(string $table): ConnectionInterface;
 
     public function select(string ...$fields): ConnectionInterface;

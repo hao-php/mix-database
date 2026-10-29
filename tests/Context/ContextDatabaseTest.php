@@ -20,7 +20,7 @@ final class ContextDatabaseTest extends ContextTestCase
     /** Context Database 应透传不含凭据的连接标识 */
     public function testGetConnectionIdentifier(): void
     {
-        $this->assertSame(hash('sha256', MYSQL_DSN), $this->db->getConnectionIdentifier());
+        $this->assertSame(hash('sha256', TEST_DSN), $this->db->getConnectionIdentifier());
     }
 
     /** beginTransaction 应返回上下文事务包装对象 */
@@ -42,6 +42,7 @@ final class ContextDatabaseTest extends ContextTestCase
             $this->assertSame($tx1, $tx2);
 
             $tx2->rollback();
+            $tx1->rollback();
         } catch (\Throwable $e) {
             $tx1->rollback();
             throw $e;
@@ -57,7 +58,7 @@ final class ContextDatabaseTest extends ContextTestCase
             $tx2 = $this->db->beginTransaction();
             $this->assertSame($tx1, $tx2);
 
-            $id = $this->db->insert('test_users', [
+            $id = $this->db->insert('mixdb_test_context_users', [
                 'user_name' => 'nested_commit_test',
                 'email' => 'tx@example.com',
             ])->lastInsertId();
@@ -67,14 +68,14 @@ final class ContextDatabaseTest extends ContextTestCase
             $tx2->commit();
 
             // 在同一事务上下文中，应当可以读到刚插入的数据
-            $userInTx = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $userInTx = $this->db->table('mixdb_test_context_users')->where('id = ?', $id)->first();
             $this->assertNotFalse($userInTx);
 
             // 最外层 commit：此时才真正提交到数据库
             $tx1->commit();
 
             // 提交后再次查询，应当仍然能读到该数据
-            $userAfterCommit = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $userAfterCommit = $this->db->table('mixdb_test_context_users')->where('id = ?', $id)->first();
             $this->assertNotFalse($userAfterCommit);
         } catch (\Throwable $e) {
             $tx1->rollback();
@@ -120,7 +121,7 @@ final class ContextDatabaseTest extends ContextTestCase
     public function testQueryLogToSqlWithNamedBindings(): void
     {
         $log = [
-            'sql' => 'SELECT * FROM users WHERE name = :name',
+            'sql' => 'SELECT * FROM mixdb_test_users WHERE name = :name',
             'bindings' => ['name' => 'test'],
         ];
 
@@ -132,7 +133,7 @@ final class ContextDatabaseTest extends ContextTestCase
     public function testQueryLogToSqlWithPositionalBindings(): void
     {
         $log = [
-            'sql' => 'SELECT * FROM users WHERE id = ? AND name = ?',
+            'sql' => 'SELECT * FROM mixdb_test_users WHERE id = ? AND name = ?',
             'bindings' => [1, 'test'],
         ];
 
@@ -145,7 +146,7 @@ final class ContextDatabaseTest extends ContextTestCase
     public function testQueryLogToSqlWithArrayBindings(): void
     {
         $log = [
-            'sql' => 'SELECT * FROM users WHERE id IN (?)',
+            'sql' => 'SELECT * FROM mixdb_test_users WHERE id IN (?)',
             'bindings' => [[1, 2, 3]],
         ];
 
@@ -157,23 +158,23 @@ final class ContextDatabaseTest extends ContextTestCase
     public function testQueryLogToSqlWithEmptyBindings(): void
     {
         $log = [
-            'sql' => 'SELECT * FROM users',
+            'sql' => 'SELECT * FROM mixdb_test_users',
             'bindings' => [],
         ];
 
         $sql = Database::queryLogToSql($log);
-        $this->assertEquals('SELECT * FROM users', $sql);
+        $this->assertEquals('SELECT * FROM mixdb_test_users', $sql);
     }
 
     /** queryLogToSql：没有 bindings 字段时保持原 SQL 不变 */
     public function testQueryLogToSqlWithoutBindings(): void
     {
         $log = [
-            'sql' => 'SELECT * FROM users',
+            'sql' => 'SELECT * FROM mixdb_test_users',
         ];
 
         $sql = Database::queryLogToSql($log);
-        $this->assertEquals('SELECT * FROM users', $sql);
+        $this->assertEquals('SELECT * FROM mixdb_test_users', $sql);
     }
 
     /** 事务提交后，插入的数据应当可以被查询到 */
@@ -182,7 +183,7 @@ final class ContextDatabaseTest extends ContextTestCase
         $tx = $this->db->beginTransaction();
 
         try {
-            $id = $this->db->insert('test_users', [
+            $id = $this->db->insert('mixdb_test_context_users', [
                 'user_name' => 'tx_commit_test',
                 'email' => 'tx@example.com',
             ])->lastInsertId();
@@ -191,7 +192,7 @@ final class ContextDatabaseTest extends ContextTestCase
 
             $tx->commit();
 
-            $user = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $user = $this->db->table('mixdb_test_context_users')->where('id = ?', $id)->first();
             $this->assertNotNull($user);
             $this->assertEquals('tx_commit_test', $user['user_name']);
         } catch (\Throwable $e) {
@@ -206,7 +207,7 @@ final class ContextDatabaseTest extends ContextTestCase
         $tx = $this->db->beginTransaction();
 
         try {
-            $id = $this->db->insert('test_users', [
+            $id = $this->db->insert('mixdb_test_context_users', [
                 'user_name' => 'tx_rollback_test',
                 'email' => 'tx@example.com',
             ])->lastInsertId();
@@ -215,7 +216,7 @@ final class ContextDatabaseTest extends ContextTestCase
 
             $tx->rollback();
 
-            $user = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $user = $this->db->table('mixdb_test_context_users')->where('id = ?', $id)->first();
             $this->assertFalse($user);
         } catch (\Throwable $e) {
             $tx->rollback();
@@ -232,7 +233,7 @@ final class ContextDatabaseTest extends ContextTestCase
             $tx2 = $this->db->beginTransaction();
             $this->assertSame($tx1, $tx2);
 
-            $id = $this->db->insert('test_users', [
+            $id = $this->db->insert('mixdb_test_context_users', [
                 'user_name' => 'nested_rollback_test',
                 'email' => 'tx@example.com',
             ])->lastInsertId();
@@ -242,14 +243,14 @@ final class ContextDatabaseTest extends ContextTestCase
             $tx2->rollback();
 
             // 在同一事务上下文中，应当仍然可以读到刚插入的数据
-            $userInTx = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $userInTx = $this->db->table('mixdb_test_context_users')->where('id = ?', $id)->first();
             $this->assertNotFalse($userInTx);
 
             // 最外层 rollback：此时才真正回滚
             $tx1->rollback();
 
             // 回滚后再次查询，应当读不到该数据
-            $userAfterRollback = $this->db->table('test_users')->where('id = ?', $id)->first();
+            $userAfterRollback = $this->db->table('mixdb_test_context_users')->where('id = ?', $id)->first();
             $this->assertFalse($userAfterRollback);
         } catch (\Throwable $e) {
             $tx1->rollback();
@@ -268,7 +269,7 @@ final class ContextDatabaseTest extends ContextTestCase
         });
 
         try {
-            $this->db->insert('test_users', [
+            $this->db->insert('mixdb_test_context_users', [
                 'user_name' => 'tx_callback_test',
                 'email' => 'tx@example.com',
             ]);
@@ -285,11 +286,11 @@ final class ContextDatabaseTest extends ContextTestCase
     /** 不同 Database 实例的事务上下文应当相互隔离 */
     public function testTransactionContextIsolation(): void
     {
-        $db1 = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD, [
+        $db1 = new Database(TEST_DSN, TEST_USERNAME, TEST_PASSWORD, [
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
         ]);
 
-        $db2 = new Database(MYSQL_DSN, MYSQL_USERNAME, MYSQL_PASSWORD, [
+        $db2 = new Database(TEST_DSN, TEST_USERNAME, TEST_PASSWORD, [
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
         ]);
 
@@ -340,7 +341,7 @@ final class ContextDatabaseTest extends ContextTestCase
                 $debugCalled = true;
             });
 
-            $tx->table('test_users')->first();
+            $tx->table('mixdb_test_context_users')->first();
             $this->assertTrue($debugCalled);
             $tx->rollback();
         } catch (\Throwable $e) {
