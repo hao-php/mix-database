@@ -167,6 +167,7 @@ trait QueryBuilder
         if (!in_array($order, ['asc', 'desc'])) {
             throw new \RuntimeException('Sort can only be asc or desc.');
         }
+        $this->getDriver()->quoteFieldName($field);
         $this->order[] = [$field, strtoupper($order)];
         return $this;
     }
@@ -268,13 +269,9 @@ trait QueryBuilder
             if ($index == 'UPDATE') {
                 $set = [];
                 foreach ($data as $k => $v) {
-                    $quotedK = $driver->quoteColumnName($k);
-                    if ($v instanceof Expr) {
-                        $set[] = "{$quotedK} = {$v->__toString()}";
-                    } else {
-                        $set[] = "{$quotedK} = ?";
-                        $values[] = $v;
-                    }
+                    $quotedK = $driver->quoteFieldName($k);
+                    $set[] = "{$quotedK} = ?";
+                    $values[] = $v;
                 }
                 $sqls[] = "UPDATE {$quotedTable} SET " . implode(', ', $set);
             } else {
@@ -298,19 +295,6 @@ trait QueryBuilder
             foreach ($this->where as $key => $item) {
                 list($keyword, $expr, $vals) = $item;
 
-                // in 处理
-                foreach ($vals as $k => $val) {
-                    if (is_array($val)) {
-                        foreach ($val as &$value) {
-                            if (is_string($value)) {
-                                $value = "'$value'";
-                            }
-                        }
-                        unset($value);
-                        $expr = preg_replace('/\(\?\)/', sprintf('(%s)', implode(',', $val)), $expr, 1);
-                        unset($vals[$k]);
-                    }
-                }
 
                 if ($key == 0) {
                     $sqls[] = "{$expr}";
@@ -344,7 +328,7 @@ trait QueryBuilder
             $subSql = [];
             foreach ($this->order as $item) {
                 list($field, $order) = $item;
-                $quotedField = $driver->quoteColumnName($field);
+                $quotedField = $driver->quoteFieldName($field);
                 $subSql[] = "{$quotedField} {$order}";
             }
             $sqls[] = "ORDER BY " . implode(', ', $subSql);

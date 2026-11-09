@@ -307,8 +307,8 @@ final class DriverTest extends TestCase
         $this->assertStringContainsString('REPLACE INTO `mixdb_test_users`', $result['sql']);
         $this->assertStringContainsString('`name`', $result['sql']);
         $this->assertStringContainsString('`balance`', $result['sql']);
-        $this->assertArrayHasKey('params', $result);
-        $this->assertEquals(['name' => 'foo', 'balance' => 10], $result['params']);
+        $this->assertArrayHasKey('values', $result);
+        $this->assertEquals(['foo', 10], $result['values']);
     }
 
     /** MySQL 驱动应生成 ON DUPLICATE KEY UPDATE 语句 */
@@ -367,7 +367,7 @@ final class DriverTest extends TestCase
         $this->assertStringContainsString('INSERT INTO', $result['sql']);
         $this->assertStringContainsString('"mixdb_test_users"', $result['sql']);
         $this->assertStringContainsString('RETURNING "id"', $result['sql']);
-        $this->assertArrayHasKey('params', $result);
+        $this->assertArrayHasKey('values', $result);
     }
 
 }

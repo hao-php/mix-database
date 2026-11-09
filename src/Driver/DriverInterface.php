@@ -72,9 +72,14 @@ interface DriverInterface
     public function quoteTableName(string $table): string;
 
     /**
-     * 引号列名（处理表名前缀）
-     * @param string $column 列名，可能包含表名前缀如 "users.name"
-     * @return string 引号后的列名
+     * 校验并引用普通字段。
+     * @param string $column 字段路径
+     */
+    public function quoteFieldName(string $column): string;
+
+    /**
+     * 引用查询列名；复杂表达式属于可信 SQL。
+     * @param string $column 查询字段或可信表达式
      */
     public function quoteColumnName(string $column): string;
 

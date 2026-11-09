@@ -220,6 +220,24 @@ abstract class Model
                 $value = $w[2];
             }
 
+            \Haoa\MixDatabase\Sql::identifier($field);
+            $option = strtoupper(preg_replace('/\\s+/', ' ', trim($option)));
+            if (!in_array($option, ['=', '!=', '<>', '>', '>=', '<', '<=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN', 'IS', 'IS NOT', 'ILIKE', 'NOT ILIKE'], true)) {
+                throw new \InvalidArgumentException('不支持的 SQL 操作符');
+            }
+            if (in_array($option, ['IN', 'NOT IN'], true) && !is_array($value)) {
+                throw new \InvalidArgumentException('IN 和 NOT IN 必须使用数组参数');
+            }
+            if (in_array($option, ['IS', 'IS NOT'], true) && $value !== null && !is_bool($value)) {
+                throw new \InvalidArgumentException('IS 和 IS NOT 仅支持 NULL 或布尔值');
+            }
+            if (is_array($value) && !in_array($option, ['IN', 'NOT IN'], true)) {
+                throw new \InvalidArgumentException('数组参数仅支持 IN 和 NOT IN');
+            }
+            if (($option === 'IS' || $option === 'IS NOT') && ($value === null || is_bool($value))) {
+                $stringArr[] = $field . ' ' . $option . ' ' . ($value === null ? 'NULL' : ($value ? 'TRUE' : 'FALSE'));
+                continue;
+            }
             if (is_array($value)) {
                 $stringArr[] = $field . ' ' . strtoupper($option) . ' (?)';
             } else {
@@ -360,6 +378,7 @@ abstract class Model
 
     public function alias(string $alias)
     {
+        \Haoa\MixDatabase\Sql::identifier($alias, '', false, false);
         $this->alias = $alias;
         $this->isClean = false;
         return $this;

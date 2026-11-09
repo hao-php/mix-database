@@ -131,39 +131,16 @@ class MysqlDriver implements DriverInterface
      */
     public function quoteTableName(string $table): string
     {
-        // 未启用引号功能时直接返回
-        if (!$this->quoteIdentifiers) {
-            return $table;
-        }
+        return \Haoa\MixDatabase\Sql::table($table, '`', $this->quoteIdentifiers);
+    }
 
-        // 检查是否已有引号
-        if ($this->isQuoted($table)) {
-            return $table;
-        }
-
-        // 处理别名：支持 "table AS alias" 和 "table alias" 两种格式
-        // 使用字符串函数替代正则，性能更好
-        $upperTable = strtoupper($table);
-        $asPos = strpos($upperTable, ' AS ');
-        if ($asPos !== false) {
-            // "table AS alias" 格式
-            $tableName = trim(substr($table, 0, $asPos));
-            $alias = trim(substr($table, $asPos + 4));
-            return $this->quoteIdentifier($tableName) . ' AS ' . $this->quoteIdentifier($alias);
-        }
-
-        // 检查是否有空格（"table alias" 格式）
-        $spacePos = strpos($table, ' ');
-        if ($spacePos !== false) {
-            $tableName = trim(substr($table, 0, $spacePos));
-            $alias = trim(substr($table, $spacePos + 1));
-            if ($tableName !== '' && $alias !== '') {
-                return $this->quoteIdentifier($tableName) . ' ' . $this->quoteIdentifier($alias);
-            }
-        }
-
-        // 无别名，直接引号
-        return $this->quoteIdentifier($table);
+    /**
+     * 校验并引用普通字段，不接受 SQL 表达式。
+     * @param string $column 字段路径
+     */
+    public function quoteFieldName(string $column): string
+    {
+        return \Haoa\MixDatabase\Sql::identifier($column, '`', $this->quoteIdentifiers);
     }
 
     /**
@@ -235,29 +212,25 @@ class MysqlDriver implements DriverInterface
      */
     protected function quoteIdentifier(string $identifier): string
     {
-        // 如果已被引号，直接返回
-        if ($this->isQuoted($identifier)) {
-            return $identifier;
-        }
-        return "`{$identifier}`";
+        return \Haoa\MixDatabase\Sql::identifier($identifier, '`', true);
     }
 
     /**
      * 构建 REPLACE INTO 语句（MySQL 特有）
      * @param string $table
      * @param array $data
-     * @return array ['sql' => ..., 'params' => ...]
+     * @return array ['sql' => ..., 'values' => ...]
      */
     public function buildReplaceInsert(string $table, array $data): array
     {
         $quotedTable = $this->quoteTableName($table);
         $keys = array_keys($data);
-        $quotedKeys = array_map([$this, 'quoteColumnName'], $keys);
+        $quotedKeys = array_map([$this, 'quoteFieldName'], $keys);
         $fields = array_map(function ($key) {
-            return ":{$key}";
+            return '?';
         }, $keys);
         $sql = "REPLACE INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES (" . implode(', ', $fields) . ")";
-        return ['sql' => $sql, 'params' => $data];
+        return ['sql' => $sql, 'values' => array_values($data)];
     }
 
     /**
@@ -271,13 +244,13 @@ class MysqlDriver implements DriverInterface
     {
         $quotedTable = $this->quoteTableName($table);
         $keys = array_keys($data);
-        $quotedKeys = array_map([$this, 'quoteColumnName'], $keys);
+        $quotedKeys = array_map([$this, 'quoteFieldName'], $keys);
         $placeholders = implode(', ', array_fill(0, count($keys), '?'));
         $values = array_values($data);
 
         $updateParts = [];
         foreach ($updateColumns as $col) {
-            $quotedCol = $this->quoteColumnName($col);
+            $quotedCol = $this->quoteFieldName($col);
             $updateParts[] = "{$quotedCol} = VALUES({$quotedCol})";
         }
 

@@ -162,6 +162,13 @@ abstract class AbstractConnection implements ConnectionInterface
      */
     public function raw(string $sql, ...$values): ConnectionInterface
     {
+        $mysql = $this->getDriver()->getQuoteChar()[0] === '`';
+        if ($this->params) {
+            list($sql, $values) = Sql::named($sql, $this->params, $mysql);
+            $this->params = [];
+        } else {
+            list($sql, $values) = Sql::expand($sql, $values, $mysql);
+        }
         $this->sql = $sql;
         $this->values = $values;
         $this->sqlData = [$this->sql, $this->params, $this->values, 0];
@@ -335,14 +342,6 @@ abstract class AbstractConnection implements ConnectionInterface
         // Transaction 可连续执行 SQL，新语句开始前先关闭上一结果集
         $this->closeCursor();
         if (!empty($this->params)) { // 参数绑定
-            // 支持insert里面带函数
-            foreach ($this->params as $k => $v) {
-                if ($v instanceof Expr) {
-                    unset($this->params[$k]);
-                    $k = substr($k, 0, 1) == ':' ? $k : ":{$k}";
-                    $this->sql = str_replace($k, $v->__toString(), $this->sql);
-                }
-            }
             $statement = $this->connector->instance()->prepare($this->sql);
             if (!$statement) {
                 throw new \PDOException('PDO prepare failed');
@@ -638,13 +637,12 @@ abstract class AbstractConnection implements ConnectionInterface
         $driver = $this->getDriver();
         $quotedTable = $driver->quoteTableName($table);
         $keys = array_keys($data);
-        $quotedKeys = array_map([$driver, 'quoteColumnName'], $keys);
+        $quotedKeys = array_map([$driver, 'quoteFieldName'], $keys);
         $fields = array_map(function ($key) {
-            return ":{$key}";
+            return '?';
         }, $keys);
         $sql = "{$insert} {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES (" . implode(', ', $fields) . ")";
-        $this->params = array_merge($this->params, $data);
-        return $this->exec($sql);
+        return $this->exec($sql, ...array_values($data));
     }
 
     /**
@@ -658,7 +656,7 @@ abstract class AbstractConnection implements ConnectionInterface
         $driver = $this->getDriver();
         $quotedTable = $driver->quoteTableName($table);
         $keys = array_keys($data[0]);
-        $quotedKeys = array_map([$driver, 'quoteColumnName'], $keys);
+        $quotedKeys = array_map([$driver, 'quoteFieldName'], $keys);
         $sql = "{$insert} {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES ";
         $values = [];
         $subSql = [];
@@ -666,10 +664,6 @@ abstract class AbstractConnection implements ConnectionInterface
             $placeholder = [];
             foreach ($keys as $key) {
                 $value = $item[$key];
-                if ($value instanceof Expr) {
-                    $placeholder[] = $value->__toString();
-                    continue;
-                }
                 $values[] = $value;
                 $placeholder[] = '?';
             }

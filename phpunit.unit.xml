@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php" colors="true">
+    <testsuites>
+        <testsuite name="无数据库单元测试">
+            <file>tests/SqlSecurityTest.php</file>
+            <file>tests/DriverTest.php</file>
+        </testsuite>
+    </testsuites>
+</phpunit>

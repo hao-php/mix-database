@@ -9,8 +9,8 @@ namespace Haoa\MixDatabase;
  *   new Expr('CURRENT_TIMESTAMP()')
  *   new Expr('balance + ?', 1)
  *
- * 注意：不应传入未经处理的用户输入字符串，字符串值不会被自动转义，
- * 可能导致 SQL 注入风险。如需使用用户输入，请使用参数绑定（where/insert 等方法）。
+ * 表达式 SQL 必须由开发者提供；用户输入只能通过后续参数传入，
+ * 由 SQL 构建器统一交给 PDO 绑定，不进行字符串插值。
  *
  * @package Haoa\MixDatabase
  */
@@ -38,16 +38,25 @@ class Expr
         $this->values = $values;
     }
 
-    /**
-     * @return string
-     */
+    /** 获取原始表达式 SQL。 */
+    public function getSql(): string
+    {
+        return $this->expr;
+    }
+
+    /** 获取表达式绑定参数。 */
+    public function getValues(): array
+    {
+        return $this->values;
+    }
+
+    /** 获取固定表达式；带参数表达式必须经 SQL 构建器绑定。 */
     public function __toString(): string
     {
-        $expr = $this->expr;
-        foreach ($this->values as $value) {
-            $expr = preg_replace('/\?/', is_string($value) ? "'%s'" : "%s", $expr, 1);
+        if ($this->values) {
+            throw new \LogicException('带参数的 Expr 必须通过参数绑定执行');
         }
-        return vsprintf($expr, $this->values);
+        return $this->expr;
     }
 
 }

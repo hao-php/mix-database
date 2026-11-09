@@ -135,8 +135,8 @@ final class QueryBuilderTest extends TestCase
             ->where('id IN (?) or id IN (?)', [1, 2], [3, 4])
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $_this->assertEquals('SELECT * FROM mixdb_test_users WHERE id IN (1,2) or id IN (3,4)', $log['sql']);
-                $_this->assertEquals([], $log['bindings']);
+                $_this->assertEquals('SELECT * FROM mixdb_test_users WHERE id IN (?, ?) or id IN (?, ?)', $log['sql']);
+                $_this->assertEquals([1, 2, 3, 4], $log['bindings']);
             })
             ->get();
 
@@ -145,8 +145,8 @@ final class QueryBuilderTest extends TestCase
             ->where('id IN (?) or id = ?', [1, 2], 3)
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $_this->assertEquals('SELECT * FROM mixdb_test_users WHERE id IN (1,2) or id = ?', $log['sql']);
-                $_this->assertEquals([3], $log['bindings']);
+                $_this->assertEquals('SELECT * FROM mixdb_test_users WHERE id IN (?, ?) or id = ?', $log['sql']);
+                $_this->assertEquals([1, 2, 3], $log['bindings']);
             })
             ->get();
 
@@ -155,8 +155,8 @@ final class QueryBuilderTest extends TestCase
             ->where('id = ? or id IN (?)', 3, [1, 2])
             ->debug(function (ConnectionInterface $conn) use ($_this) {
                 $log = $conn->queryLog();
-                $_this->assertEquals('SELECT * FROM mixdb_test_users WHERE id = ? or id IN (1,2)', $log['sql']);
-                $_this->assertEquals([3], $log['bindings']);
+                $_this->assertEquals('SELECT * FROM mixdb_test_users WHERE id = ? or id IN (?, ?)', $log['sql']);
+                $_this->assertEquals([3, 1, 2], $log['bindings']);
             })
             ->get();
     }
