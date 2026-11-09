@@ -83,6 +83,9 @@ abstract class Model
 
     protected array $leftJoins = [];
 
+    /** @var string 当前查询的行锁类型，空字符串表示不加锁 */
+    protected string $lockMode = '';
+
     protected ?\Closure $debug;
 
     protected array $lastQueryLog = [];
@@ -171,6 +174,7 @@ abstract class Model
         $this->group = [];
         $this->joins = [];
         $this->leftJoins = [];
+        $this->lockMode = '';
         $this->debug = null;
         $this->isClean = true;
     }
@@ -281,6 +285,12 @@ abstract class Model
             }
         }
 
+        if ($this->lockMode === 'update') {
+            $conn->lockForUpdate();
+        } elseif ($this->lockMode === 'shared') {
+            $conn->sharedLock();
+        }
+
         if (!empty($this->debug)) {
             $conn->debug($this->debug);
         }
@@ -307,6 +317,11 @@ abstract class Model
         if ($transaction !== null) {
             $this->lastConnectionType = 'transaction';
             return $transaction->table($table);
+        }
+
+        // 行锁必须在主库执行，避免读写分离时锁住只读副本。
+        if ($this->lockMode !== '') {
+            $connType = self::WRITE;
         }
 
         // 2. 根据连接类型选择数据库
@@ -387,6 +402,22 @@ abstract class Model
         }
         list($string, $values) = $this->buildWhere(...$where);
         $this->ors[] = [$string, $values];
+        $this->isClean = false;
+        return $this;
+    }
+
+    /** 为当前查询添加排他行锁，通常在事务中使用。 */
+    public function lockForUpdate(): static
+    {
+        $this->lockMode = 'update';
+        $this->isClean = false;
+        return $this;
+    }
+
+    /** 为当前查询添加共享行锁，通常在事务中使用。 */
+    public function sharedLock(): static
+    {
+        $this->lockMode = 'shared';
         $this->isClean = false;
         return $this;
     }
