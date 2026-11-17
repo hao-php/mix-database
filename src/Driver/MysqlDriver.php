@@ -242,11 +242,23 @@ class MysqlDriver implements DriverInterface
      */
     public function buildInsertOnDuplicateKey(string $table, array $data, array $updateColumns): array
     {
+        return $this->buildBatchInsertOnDuplicateKey($table, [$data], $updateColumns);
+    }
+
+    /**
+     * 构建批量冲突写入 SQL，字段按首行对齐，大批量数据由调用方分批。
+     * @param string $table 表名
+     * @param array $list 新增记录列表
+     * @param array $updateColumns 冲突时更新的列名列表
+     */
+    public function buildBatchInsertOnDuplicateKey(string $table, array $list, array $updateColumns): array
+    {
+        if (empty($updateColumns)) {
+            throw new \InvalidArgumentException('MySQL 冲突更新列不得为空');
+        }
         $quotedTable = $this->quoteTableName($table);
-        $keys = array_keys($data);
+        [$keys, $placeholders, $values] = \Haoa\MixDatabase\Sql::batchInsertValues($list);
         $quotedKeys = array_map([$this, 'quoteFieldName'], $keys);
-        $placeholders = implode(', ', array_fill(0, count($keys), '?'));
-        $values = array_values($data);
 
         $updateParts = [];
         foreach ($updateColumns as $col) {
@@ -254,7 +266,7 @@ class MysqlDriver implements DriverInterface
             $updateParts[] = "{$quotedCol} = VALUES({$quotedCol})";
         }
 
-        $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES ({$placeholders}) ON DUPLICATE KEY UPDATE " . implode(', ', $updateParts);
+        $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES {$placeholders} ON DUPLICATE KEY UPDATE " . implode(', ', $updateParts);
         return ['sql' => $sql, 'values' => $values];
     }
 

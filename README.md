@@ -168,6 +168,37 @@ $data = [
 $db->insert('users', $data);
 ```
 
+### 冲突时更新或忽略
+
+以下方法保留各数据库自身语义，不提供统一的 `upsert()`。示例假设 `users.id` 为主键；其他冲突字段须有匹配的唯一约束或唯一索引。
+
+```php
+// PostgreSQL：明确指定冲突列，支持字符串或复合列数组。
+$db->insertOnConflict('users', ['id' => 1, 'name' => '张三'], 'id', ['name']);
+$db->batchInsertOnConflict('users', [
+    ['id' => 1, 'name' => '张三'],
+    ['name' => '李四', 'id' => 2],
+], 'id', ['name']);
+
+// PostgreSQL：省略更新列或传 [] 时生成 DO NOTHING。
+$db->insertOnConflict('users', ['id' => 1, 'name' => '张三'], 'id');
+
+// MySQL：由主键或任意唯一索引冲突触发更新，不能指定冲突键。
+$db->insertOnDuplicateKey('users', ['id' => 1, 'name' => '张三'], ['name']);
+$db->batchInsertOnDuplicateKey('users', [
+    ['id' => 1, 'name' => '张三'],
+    ['id' => 2, 'name' => '李四'],
+], ['name']);
+```
+
+- 基础 `Database`、`Context\Database` 和 Connection 均可调用，DB 通过驱动方法透传；Connection 调用也须传入表名，不使用 `where()` 等查询条件。
+- 返回 `ConnectionInterface`，可调用 `rowCount()`；不同数据库的新增、更新计数语义不同，不应将其直接当作成功记录数。不要依赖冲突更新或批量写入的 `lastInsertId()` 获取各条记录 ID。
+- 基础 DB、Connection 不自动维护时间；需要时间字段时显式传入，或使用 [Model 冲突写入接口](MODEL.md#冲突写入单条与批量)。更新列为列名列表，写入值来自本次新增数据，不能传入任意更新表达式映射。
+- 批量列表及每行记录不得为空，各行字段集合须一致；顺序可以不同，绑定值按首行字段顺序对齐。值通过参数绑定传入，表名、字段名及冲突列须由可信代码指定。
+- 一次批量调用生成一条 SQL，不自动分批或开启事务。调用方应按绑定参数数量和 SQL 大小限制分批；跨批次需要原子性时显式使用事务。
+- PostgreSQL 同批多行命中相同冲突记录时，`DO UPDATE` 可能报错；请由业务层整理重复数据，库不自动去重。MySQL 更新列不得为空。
+- 在不匹配的数据库上调用另一种方言方法会抛出 `BadMethodCallException`。
+
 ## 查询 Select
 
 ### 获取结果

@@ -194,4 +194,35 @@ final class Sql
         }, $mysql);
         return self::expand($sql, $values, $mysql);
     }
+    /**
+     * 校验批量记录字段一致，并按首行字段顺序生成占位符及绑定值。
+     * @param array $list 新增记录列表
+     * @return array 字段名、占位符片段和绑定值
+     */
+    public static function batchInsertValues(array $list): array
+    {
+        if (empty($list)) {
+            throw new \InvalidArgumentException('批量新增数据不得为空');
+        }
+        $keys = null;
+        $values = [];
+        $groups = [];
+        foreach ($list as $row) {
+            if (!is_array($row) || empty($row)) {
+                throw new \InvalidArgumentException('每条新增记录必须为非空数组');
+            }
+            if ($keys === null) {
+                $keys = array_keys($row);
+            }
+            if (count($row) !== count($keys) || array_diff($keys, array_keys($row))) {
+                throw new \InvalidArgumentException('批量新增记录的字段必须一致');
+            }
+            foreach ($keys as $key) {
+                $values[] = $row[$key];
+            }
+            $groups[] = '(' . implode(', ', array_fill(0, count($keys), '?')) . ')';
+        }
+        return [$keys, implode(', ', $groups), $values];
+    }
+
 }

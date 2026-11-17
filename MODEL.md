@@ -132,6 +132,8 @@ $users = UserModel::db($db)
 | `insert($data)` | `ConnectionInterface`，可继续取 `lastInsertId()`、`rowCount()` |
 | `insertGetId($data)` | 字符串形式的自增 ID |
 | `batchInsert($list)` | 受影响行数 |
+| `insertOnConflict()` / `insertOnDuplicateKey()` | `ConnectionInterface` |
+| `batchInsertOnConflict()` / `batchInsertOnDuplicateKey()` | `ConnectionInterface` |
 | `update()` / `updates()` / `delete()` | 受影响行数 |
 
 不建议将 Model 的 `statement()` 作为查询终结方法：底层 statement 仅供 debug 回调使用，该 Model 方法不会主动执行 SELECT。常规查询使用 `get()`、`first()`。
@@ -160,6 +162,54 @@ $affected = UserModel::db($db)->where('id', $id)->delete();
 Model 更新、删除必须有非空的 `where()` 或 `whereRaw()` 条件，仅有 `orWhere()` 仍会被拒绝。这是防误操作检查，不是权限控制；固定真条件仍可能影响全表。基础 DB 没有同样的无条件更新、删除保护。
 
 Expr SQL 模板必须可信，用户值放在后续参数中；带参数 Expr 不支持直接转字符串。批量写入须提供非空列表，各行使用一致字段。
+
+## 冲突写入：单条与批量
+
+方法参数与基础 DB 对应，但 Model 自动使用模型表名，无需传表名：
+
+```php
+// PostgreSQL：指定主键或唯一键字段。
+$result = UserModel::db($db)->insertOnConflict(
+    ['id' => 1, 'name' => '张三', 'balance' => 100],
+    'id',
+    ['name', 'balance']
+);
+$result = UserModel::db($db)->batchInsertOnConflict([
+    ['id' => 1, 'name' => '张三', 'balance' => 100],
+    ['balance' => 200, 'name' => '李四', 'id' => 2],
+], 'id', ['name', 'balance']);
+
+// PostgreSQL：更新列省略或为 [] 时，冲突记录保持不变。
+UserModel::db($db)->batchInsertOnConflict([
+    ['id' => 1, 'name' => '张三'],
+    ['id' => 2, 'name' => '李四'],
+], 'id');
+
+// MySQL：不指定冲突键，更新列不得为空。
+$result = UserModel::db($db)->insertOnDuplicateKey(
+    ['id' => 1, 'name' => '张三'], ['name']
+);
+$result = UserModel::db($db)->batchInsertOnDuplicateKey([
+    ['id' => 1, 'name' => '张三'],
+    ['id' => 2, 'name' => '李四'],
+], ['name']);
+$affected = $result->rowCount();
+```
+
+以上示例按 PostgreSQL、MySQL 分别运行；`UserModel` 在本指南开头关闭了时间维护。需要自动时间时使用下节的 `TimedUserModel`，或自行配置模型时间属性。
+
+四个方法均返回 `ConnectionInterface`，与普通 `batchInsert()` 返回受影响行数不同。它们使用写连接，并复用模型所属 `Context\Database` 的当前上下文事务；可通过 `getLastQueryLog()`、`getLastSql()` 查看最后一次成功写入日志。
+
+时间与参数约定：
+
+- 按每条记录自动补齐已启用的创建、更新时间字段；显式非 null 值保留，null 按未提供处理，生成方式遵循 `buildCreateTime()`、`buildUpdateTime()`。
+- 冲突更新只更新指定列，并自动追加已启用的更新时间字段；不覆盖原创建时间，显式将创建时间加入更新列会抛出 `InvalidArgumentException`。
+- PostgreSQL `DO NOTHING` 不会因自动时间维护变为更新操作，已有记录的更新时间保持不变。
+- 更新列必须存在于补齐时间后的新增记录中。批量各行补齐时间后的字段集合须一致，顺序可以不同；空列表、空记录、非数组记录及不一致字段会在执行前被拒绝。
+- 必须使用干净的 Model 实例；提前调用 `where()`、`select()`、`alias()`、`debug()` 等改变查询状态的方法会抛出 `LogicException`，避免条件或绑定参数混入 INSERT。成功或执行失败后都会重置查询状态。
+- 单次批量调用生成一条 SQL，不自动分批或去重。大批量由调用方分批，跨批次原子性由调用方事务保证；PostgreSQL 同批重复冲突键执行 `DO UPDATE` 可能报错。
+
+冲突键要求、两种数据库的差异及返回计数说明，参见 [基础 DB 冲突写入](README.md#冲突时更新或忽略)。
 
 ## 自动时间字段
 

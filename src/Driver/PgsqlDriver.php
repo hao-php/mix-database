@@ -222,11 +222,21 @@ class PgsqlDriver implements DriverInterface
      */
     public function buildInsertOnConflict(string $table, array $data, $conflictTarget, array $updateColumns = []): array
     {
+        return $this->buildBatchInsertOnConflict($table, [$data], $conflictTarget, $updateColumns);
+    }
+
+    /**
+     * 构建批量冲突写入 SQL，字段按首行对齐，大批量数据由调用方分批。
+     * @param string $table 表名
+     * @param array $list 新增记录列表
+     * @param string|array $conflictTarget 冲突列名或列名数组
+     * @param array $updateColumns 冲突时更新的列名列表
+     */
+    public function buildBatchInsertOnConflict(string $table, array $list, $conflictTarget, array $updateColumns = []): array
+    {
         $quotedTable = $this->quoteTableName($table);
-        $keys = array_keys($data);
+        [$keys, $placeholders, $values] = \Haoa\MixDatabase\Sql::batchInsertValues($list);
         $quotedKeys = array_map([$this, 'quoteFieldName'], $keys);
-        $placeholders = implode(', ', array_fill(0, count($keys), '?'));
-        $values = array_values($data);
 
         if (is_string($conflictTarget)) {
             $conflictTarget = [$conflictTarget];
@@ -235,14 +245,14 @@ class PgsqlDriver implements DriverInterface
         $conflictList = implode(', ', $quotedConflict);
 
         if (empty($updateColumns)) {
-            $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES ({$placeholders}) ON CONFLICT ({$conflictList}) DO NOTHING";
+            $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES {$placeholders} ON CONFLICT ({$conflictList}) DO NOTHING";
         } else {
             $updateParts = [];
             foreach ($updateColumns as $col) {
                 $quotedCol = $this->quoteFieldName($col);
                 $updateParts[] = "{$quotedCol} = EXCLUDED.{$quotedCol}";
             }
-            $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES ({$placeholders}) ON CONFLICT ({$conflictList}) DO UPDATE SET " . implode(', ', $updateParts);
+            $sql = "INSERT INTO {$quotedTable} (" . implode(', ', $quotedKeys) . ") VALUES {$placeholders} ON CONFLICT ({$conflictList}) DO UPDATE SET " . implode(', ', $updateParts);
         }
 
         return ['sql' => $sql, 'values' => $values];

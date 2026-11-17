@@ -595,6 +595,120 @@ abstract class Model
         return $ret;
     }
 
+    /**
+     * PostgreSQL 按指定唯一键插入或更新，更新列为空时忽略冲突。
+     * @param array $data 新增数据
+     * @param string|array $conflictTarget 冲突列名或列名数组
+     * @param array $updateColumns 冲突时更新的列名列表
+     */
+    public function insertOnConflict(array $data, $conflictTarget, array $updateColumns = []): ConnectionInterface
+    {
+        return $this->insertWithConflict('insertOnConflict', [$data], $updateColumns, $conflictTarget);
+    }
+
+    /**
+     * MySQL 在主键或任意唯一索引冲突时更新指定列。
+     * @param array $data 新增数据
+     * @param array $updateColumns 冲突时更新的列名列表，不得为空
+     */
+    public function insertOnDuplicateKey(array $data, array $updateColumns): ConnectionInterface
+    {
+        return $this->insertWithConflict('insertOnDuplicateKey', [$data], $updateColumns);
+    }
+
+    /**
+     * PostgreSQL 批量插入或更新，更新列为空时忽略冲突；大批量数据由调用方分批。
+     * @param array $list 新增记录列表
+     * @param string|array $conflictTarget 冲突列名或列名数组
+     * @param array $updateColumns 冲突时更新的列名列表
+     */
+    public function batchInsertOnConflict(array $list, $conflictTarget, array $updateColumns = []): ConnectionInterface
+    {
+        return $this->insertWithConflict('batchInsertOnConflict', $list, $updateColumns, $conflictTarget);
+    }
+
+    /**
+     * MySQL 批量插入或更新，按主键或任意唯一索引判断冲突；大批量数据由调用方分批。
+     * @param array $list 新增记录列表
+     * @param array $updateColumns 冲突时更新的列名列表，不得为空
+     */
+    public function batchInsertOnDuplicateKey(array $list, array $updateColumns): ConnectionInterface
+    {
+        return $this->insertWithConflict('batchInsertOnDuplicateKey', $list, $updateColumns);
+    }
+
+    /**
+     * 复用驱动冲突写入，维护时间并在成功或失败后清理模型状态。
+     * @param string $method 驱动写入方法
+     * @param array $list 新增记录列表
+     * @param array $updateColumns 冲突时更新的列名列表
+     * @param string|array|null $conflictTarget PostgreSQL 冲突列
+     */
+    private function insertWithConflict(string $method, array $list, array $updateColumns, $conflictTarget = null): ConnectionInterface
+    {
+        try {
+            // 冲突写入不使用查询条件，避免条件参数混入 INSERT 的绑定参数。
+            if (!$this->isClean()) {
+                throw new \LogicException('冲突写入不接受查询链条件，请使用干净的 Model 实例');
+            }
+            if (empty($list)) {
+                throw new \InvalidArgumentException('新增数据不得为空');
+            }
+            $postgres = in_array($method, ['insertOnConflict', 'batchInsertOnConflict'], true);
+            if ($postgres) {
+                $targets = is_string($conflictTarget) ? [$conflictTarget] : $conflictTarget;
+                if (!is_array($targets) || empty($targets)) {
+                    throw new \InvalidArgumentException('冲突列不得为空');
+                }
+                foreach ($targets as $column) {
+                    if (!is_string($column) || $column === '') {
+                        throw new \InvalidArgumentException('冲突列必须为非空字符串');
+                    }
+                }
+            }
+            foreach ($list as &$data) {
+                if (!is_array($data) || empty($data)) {
+                    throw new \InvalidArgumentException('每条新增记录必须为非空数组');
+                }
+                $createTime = null;
+                if ($this->createTimeField && !isset($data[$this->createTimeField])) {
+                    $createTime = $data[$this->createTimeField] = $this->buildCreateTime();
+                }
+                if ($this->updateTimeField && !isset($data[$this->updateTimeField])) {
+                    $data[$this->updateTimeField] = $this->buildUpdateTime($createTime);
+                }
+            }
+            unset($data);
+            // 先校验全部记录，防止字段缺失或多余时产生错列写入。
+            [$keys] = \Haoa\MixDatabase\Sql::batchInsertValues($list);
+            foreach ($updateColumns as $column) {
+                if (!is_string($column) || !in_array($column, $keys, true)) {
+                    throw new \InvalidArgumentException('更新列必须存在于新增数据中');
+                }
+                if ($this->createTimeField && $column === $this->createTimeField) {
+                    throw new \InvalidArgumentException('冲突更新不得修改创建时间');
+                }
+            }
+            if (!$postgres && empty($updateColumns)) {
+                throw new \InvalidArgumentException('MySQL 冲突更新列不得为空');
+            }
+            // DO NOTHING 保持不写入；只有确实更新业务字段时才自动更新修改时间。
+            if ($this->updateTimeField && !empty($updateColumns)) {
+                $updateColumns[] = $this->updateTimeField;
+                $updateColumns = array_values(array_unique($updateColumns));
+            }
+            $conn = $this->getConn(self::WRITE);
+            $payload = strpos($method, 'batch') === 0 ? $list : reset($list);
+            $ret = $postgres
+                ? $conn->$method($this->table, $payload, $conflictTarget, $updateColumns)
+                : $conn->$method($this->table, $payload, $updateColumns);
+            $this->lastQueryLog = $conn->queryLog();
+            return $ret;
+        } finally {
+            $this->reset();
+        }
+    }
+
     public function insert(array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
         $createTime = null;

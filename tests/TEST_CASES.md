@@ -117,3 +117,32 @@
 | | testWhereException | where 非法格式抛异常 |
 | | testUpdateWithoutWhereException | update 无 where 条件抛异常 |
 | | testDeleteWithoutWhereException | delete 无 where 条件抛异常 |
+
+## Model 冲突写入单元测试
+
+文件：`tests/Context/ModelConflictTest.php`，使用连接替身，不连接数据库。
+
+| 方法 |
+| --- |
+| `testPostgresUpdatesAndPreservesCreationTime` |
+| `testPostgresDoNothingWithCompositeKey` |
+| `testMysqlAndExplicitTimes` |
+| `testDisabledTimestampsAndReuse` |
+| `testCustomTimestampFields` |
+| `testInvalidArguments` |
+| `testMysqlAutomaticTimestamps` |
+| `testPostgresExplicitTimes` |
+| `testMysqlRejectsEmptyUpdateColumns` |
+| `testQueryConditionsAreRejectedAndReset` |
+| `testUnsupportedDriverResetsModel` |
+| `testExecutionFailureResetsModel` |
+| `testBatchPostgresAlignsFieldsAndTimes` |
+| `testBatchMysqlMaintainsTimes` |
+| `testBatchDoNothingAndCustomTimeFields` |
+| `testBatchDisabledTimestampsAndReuse` |
+| `testBatchRejectsInvalidRows` |
+| `testBatchRejectsInvalidUpdateColumns` |
+| `testBatchRejectsQueryConditions` |
+| `testBatchExecutionFailureResetsModel` |
+| `testDriverBatchEntryPoints` |
+| `testBatchMysqlRejectsEmptyUpdateColumns` |
