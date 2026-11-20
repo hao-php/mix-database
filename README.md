@@ -109,6 +109,26 @@ Swoole\Coroutine\run(function () use ($db) {
 $db->poolStats(); // array, fields: total, idle, active
 ```
 
+## 清理到期空闲连接
+
+需要 `haoa/object-pool ^1.1`。启动连接池时，第五个可选参数是最大空闲时间，单位秒，默认 `0` 表示不限制；原四参数调用保持兼容。
+
+```php
+$db->startPool(50, 20, 3600, 10, 300);
+$db->setConnMaxIdleTime(60); // 动态调整当前池，不重建连接。
+$removed = $db->cleanupIdleConnections(); // 在协程内执行。
+```
+
+生命周期或空闲时间任一到期就回收，只关闭空闲连接，不立即补建；使用中的连接等归还后再检查生命周期。库不会自动注册定时器，由调用方在 Worker 或 CLI 协程中调度清理，并在退出时停止任务。
+
+新增清理测试使用真实客户端和连接池、模拟物理连接，不连接外部服务，不执行 SQL。可以单独运行：
+
+```bash
+php vendor/bin/phpunit --no-configuration --bootstrap vendor/autoload.php tests/PoolCleanupTest.php
+```
+
+也可运行 `php vendor/bin/phpunit -c phpunit.unit.xml`，使用不加载业务服务配置的单元测试入口。
+
 ## 创建 Insert
 
 创建

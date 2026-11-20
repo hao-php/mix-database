@@ -65,6 +65,9 @@ class Database
      */
     protected $maxLifetime = 0;
 
+    /** @var int 最大空闲时间，单位秒，零表示不限 */
+    protected $maxIdleTime = 0;
+
     /**
      * 等待新连接超时时间
      * "0" 为不限制
@@ -140,21 +143,26 @@ class Database
             $this->maxOpen,
             $this->maxIdle,
             $this->maxLifetime,
-            $this->waitTimeout
+            $this->waitTimeout,
+            0.1,
+            $this->maxIdleTime
         );
     }
 
     /**
-     * @param int $maxOpen
-     * @param int $maxIdle
-     * @param int $maxLifetime
-     * @param float $waitTimeout
+     * 启动连接池，末尾可选参数兼容原有调用。
+     * @param int $maxOpen 最大连接数
+     * @param int $maxIdle 最大空闲连接数
+     * @param int $maxLifetime 最大生命周期，单位秒，零表示不限
+     * @param float $waitTimeout 借用等待时间，单位秒，零表示不限
+     * @param int $maxIdleTime 最大空闲时间，单位秒，非正数表示不限
      */
-    public function startPool(int $maxOpen, int $maxIdle, int $maxLifetime = 0, float $waitTimeout = 0.0)
+    public function startPool(int $maxOpen, int $maxIdle, int $maxLifetime = 0, float $waitTimeout = 0.0, int $maxIdleTime = 0)
     {
         $this->maxOpen = $maxOpen;
         $this->maxIdle = $maxIdle;
         $this->maxLifetime = $maxLifetime;
+        $this->maxIdleTime = max(0, $maxIdleTime);
         $this->waitTimeout = $waitTimeout;
         $this->createPool();
     }
@@ -205,6 +213,24 @@ class Database
         }
         $this->waitTimeout = $waitTimeout;
         $this->createPool();
+    }
+
+    /**
+     * 调整最大空闲时间，直接更新当前池，不重建连接。
+     * @param int $maxIdleTime 最大空闲时间，单位秒，非正数表示不限
+     */
+    public function setConnMaxIdleTime(int $maxIdleTime): void
+    {
+        $this->maxIdleTime = max(0, $maxIdleTime);
+        if ($this->pool) {
+            $this->pool->setConnMaxIdleTime($this->maxIdleTime);
+        }
+    }
+
+    /** 清理当前池中生命周期或空闲时间已到期的连接，未启用池时返回零。 */
+    public function cleanupIdleConnections(): int
+    {
+        return $this->pool ? $this->pool->cleanupIdleConnections() : 0;
     }
 
     /**

@@ -4,7 +4,7 @@
   "require": {
     "php": ">=7.2.0",
     "ext-pdo": "*",
-    "haoa/object-pool": "^1.0",
+    "haoa/object-pool": "^1.1",
     "haoa/util": "^1.1"
   },
   "autoload": {

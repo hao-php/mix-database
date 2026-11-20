@@ -8,11 +8,13 @@ use Haoa\MixDatabase\LoggerInterface;
 use Haoa\Util\Context\RunContext;
 
 /**
- * @method startPool(int $maxOpen, int $maxIdle, int $maxLifetime = 0, float $waitTimeout = 0.0)
+ * @method startPool(int $maxOpen, int $maxIdle, int $maxLifetime = 0, float $waitTimeout = 0.0, int $maxIdleTime = 0)
  * @method setMaxOpenConns(int $maxOpen)
  * @method setMaxIdleConns(int $maxIdle)
  * @method setConnMaxLifetime(int $maxLifetime)
+ * @method void setConnMaxIdleTime(int $maxIdleTime)
  * @method setPoolWaitTimeout(float $waitTimeout)
+ * @method int cleanupIdleConnections()
  * @method array poolStats()
  * @method setLogger(LoggerInterface $logger)
  * @method ConnectionInterface debug(\Closure $func)
